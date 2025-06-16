@@ -114,7 +114,7 @@
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      background: url('https://i.imgur.com/8t5VNtG.png') repeat;
+      background: #ffffff; /* Cor sólida para evitar repetição estranha */
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -291,6 +291,7 @@
 
     // Estado do usuário
     let currentUser = null; // {name: string, avatar: base64string}
+    let messagesListener = null;
 
     // Função para formatar horário
     function formatTime(timestamp) {
@@ -375,6 +376,23 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // Começar a escutar mensagens
+    function startListeningMessages() {
+      // Limpa as mensagens antes de renderizar
+      messagesContainer.innerHTML = '';
+
+      // Remove listener anterior se existir
+      if (messagesListener) {
+        messagesRef.off('child_added', messagesListener);
+      }
+
+      messagesListener = snapshot => {
+        renderMessage(snapshot.key, snapshot.val());
+      };
+
+      messagesRef.on('child_added', messagesListener);
+    }
+
     // Enviar mensagem para Firebase
     function sendMessage() {
       const text = messageInput.value.trim();
@@ -391,11 +409,6 @@
       messageInput.value = '';
       messageInput.focus();
     }
-
-    // Ouvir mensagens novas
-    messagesRef.on('child_added', snapshot => {
-      renderMessage(snapshot.key, snapshot.val());
-    });
 
     // Login botão
     loginBtn.onclick = () => {
@@ -421,6 +434,7 @@
         };
         saveUser(currentUser);
         showChat();
+        startListeningMessages(); // Começa a escutar mensagens
       };
       reader.readAsDataURL(file);
     };
@@ -441,8 +455,12 @@
       if (confirm('Deseja sair do chat?')) {
         localStorage.removeItem('chatUser');
         currentUser = null;
-        // Limpar mensagens da tela
         messagesContainer.innerHTML = '';
+        // Remove o listener
+        if (messagesListener) {
+          messagesRef.off('child_added', messagesListener);
+          messagesListener = null;
+        }
         showLogin();
       }
     };
@@ -453,11 +471,11 @@
       if (user && user.name && user.avatar) {
         currentUser = user;
         showChat();
+        startListeningMessages();
       } else {
         showLogin();
       }
     };
-
   </script>
 
   <script>
