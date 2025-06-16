@@ -3,30 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat Firebase - Login com Foto</title>
+  <title>Chat Firebase - Login com Email/Senha e Foto</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#075e54" />
 
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #ece5dd;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       max-width: 600px;
       height: 100vh;
-      margin-left: auto;
-      margin-right: auto;
+      margin-left: auto; margin-right: auto;
       display: flex;
       flex-direction: column;
     }
-
     /* Tela Login */
     #login-screen {
       flex: 1;
@@ -36,14 +34,14 @@
       padding: 20px;
       background: #f0f0f0;
     }
-
     #login-screen h2 {
       color: #075e54;
       text-align: center;
       margin-bottom: 25px;
     }
-
-    #login-screen input[type="text"] {
+    #login-screen input[type="email"],
+    #login-screen input[type="password"],
+    #login-screen input[type="file"] {
       padding: 15px;
       font-size: 1.1rem;
       border-radius: 25px;
@@ -53,14 +51,10 @@
       width: 100%;
       transition: border-color 0.3s ease;
     }
-    #login-screen input[type="text"]:focus {
+    #login-screen input[type="email"]:focus,
+    #login-screen input[type="password"]:focus {
       border-color: #075e54;
     }
-
-    #login-screen input[type="file"] {
-      margin-bottom: 20px;
-    }
-
     #login-screen button {
       background-color: #075e54;
       color: white;
@@ -85,7 +79,6 @@
       height: 100vh;
       background: #ece5dd;
     }
-
     header {
       background: #075e54;
       color: white;
@@ -95,13 +88,11 @@
       align-items: center;
       justify-content: space-between;
     }
-
     header .user-info {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
     header .user-info img {
       width: 40px;
       height: 40px;
@@ -109,17 +100,15 @@
       object-fit: cover;
       border: 2px solid white;
     }
-
     #messages {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      background: #ffffff; /* Cor sólida para evitar repetição estranha */
+      background: #fff;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
-
     .msg {
       max-width: 75%;
       padding: 10px 15px;
@@ -132,7 +121,6 @@
       display: flex;
       flex-direction: column;
     }
-
     .msg.sent {
       background-color: #dcf8c6;
       align-self: flex-end;
@@ -140,21 +128,18 @@
       text-align: right;
       color: #000;
     }
-
     .msg.received {
       background-color: white;
       align-self: flex-start;
       border-bottom-left-radius: 0;
       color: #000;
     }
-
     .msg .msg-header {
       display: flex;
       align-items: center;
       gap: 8px;
       margin-bottom: 5px;
     }
-
     .msg .msg-header img {
       width: 24px;
       height: 24px;
@@ -162,25 +147,21 @@
       object-fit: cover;
       border: 1px solid #ccc;
     }
-
     .msg .name {
       font-weight: bold;
       color: #075e54;
       font-size: 0.9rem;
     }
-
     .msg .time {
       font-size: 0.7em;
       color: #666;
       opacity: 0.7;
       margin-left: auto;
     }
-
     .msg .text {
       font-size: 1rem;
       word-wrap: break-word;
     }
-
     .input-area {
       display: flex;
       padding: 10px 15px;
@@ -189,7 +170,6 @@
       align-items: center;
       user-select: none;
     }
-
     .input-area input[type="text"] {
       flex: 1;
       padding: 12px 15px;
@@ -202,7 +182,6 @@
     .input-area input[type="text"]:focus {
       border-color: #075e54;
     }
-
     .input-area button {
       background-color: #075e54;
       border: none;
@@ -220,8 +199,6 @@
     .input-area button:hover {
       background-color: #128c7e;
     }
-
-    /* Botão sair */
     #logout-btn {
       background: transparent;
       border: none;
@@ -230,6 +207,12 @@
       cursor: pointer;
       user-select: none;
     }
+    /* Mensagem erro */
+    #error-message {
+      color: red;
+      margin-bottom: 15px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -237,9 +220,11 @@
   <!-- Tela Login -->
   <div id="login-screen">
     <h2>Entre no Chat</h2>
-    <input type="text" id="username-input" placeholder="Seu nome" autocomplete="off" />
+    <div id="error-message"></div>
+    <input type="email" id="email-input" placeholder="Email" autocomplete="off" />
+    <input type="password" id="password-input" placeholder="Senha" autocomplete="off" />
     <input type="file" id="avatar-input" accept="image/*" />
-    <button id="login-btn">Entrar</button>
+    <button id="login-btn">Entrar / Registrar</button>
   </div>
 
   <!-- Tela Chat -->
@@ -266,91 +251,79 @@
       apiKey: "AIzaSyDAYD7DhRovj0PYHUSpOq5YE1rQXIiOPkc",
       authDomain: "chat-trader.firebaseapp.com",
       projectId: "chat-trader",
-      storageBucket: "chat-trader.firebasestorage.app",
+      storageBucket: "chat-trader.appspot.com",
       messagingSenderId: "722204996123",
       appId: "1:722204996123:web:3b0cf65b13969d01e0bebe",
       measurementId: "G-1PD8VJJH3E"
     };
 
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage();
     const messagesRef = db.ref("messages");
 
-    // Elements
+    // Elementos
     const loginScreen = document.getElementById('login-screen');
     const chatScreen = document.getElementById('chat-screen');
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const usernameInput = document.getElementById('username-input');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
     const avatarInput = document.getElementById('avatar-input');
     const userAvatar = document.getElementById('user-avatar');
     const userNameDisplay = document.getElementById('user-name');
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
     const sendBtn = document.getElementById('send-btn');
+    const errorMessage = document.getElementById('error-message');
 
     // Estado do usuário
-    let currentUser = null; // {name: string, avatar: base64string}
+    let currentUser = null; // {uid, email, displayName, photoURL}
     let messagesListener = null;
 
-    // Função para formatar horário
+    // Formatar horário
     function formatTime(timestamp) {
       const date = new Date(timestamp);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    // Salvar dados no localStorage
-    function saveUser(user) {
-      localStorage.setItem('chatUser', JSON.stringify(user));
-    }
-
-    // Carregar dados do usuário do localStorage
-    function loadUser() {
-      const userJSON = localStorage.getItem('chatUser');
-      if (!userJSON) return null;
-      try {
-        return JSON.parse(userJSON);
-      } catch {
-        return null;
-      }
-    }
-
-    // Exibir tela de chat
+    // Exibir tela chat
     function showChat() {
       loginScreen.style.display = 'none';
       chatScreen.style.display = 'flex';
-      userNameDisplay.textContent = currentUser.name;
-      userAvatar.src = currentUser.avatar;
+      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
+      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
       messageInput.focus();
     }
 
-    // Exibir tela de login
+    // Exibir tela login
     function showLogin() {
       loginScreen.style.display = 'flex';
       chatScreen.style.display = 'none';
-      usernameInput.value = '';
+      errorMessage.textContent = '';
+      emailInput.value = '';
+      passwordInput.value = '';
       avatarInput.value = '';
       messageInput.value = '';
     }
 
-    // Renderiza cada mensagem
+    // Renderizar mensagem
     function renderMessage(key, msg) {
       if (!msg.name || !msg.text) return;
 
-      // Verifica se a mensagem foi enviada pelo usuário atual
-      const isSent = currentUser && msg.name === currentUser.name;
+      const isSent = currentUser && msg.uid === currentUser.uid;
 
-      // Criar container da mensagem
       const msgEl = document.createElement('div');
       msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
       msgEl.id = key;
 
-      // Cabeçalho com avatar, nome e horário
       const header = document.createElement('div');
       header.className = 'msg-header';
 
       const avatarImg = document.createElement('img');
-      avatarImg.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png'; // Avatar default
+      avatarImg.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'name';
@@ -364,7 +337,6 @@
       header.appendChild(nameSpan);
       header.appendChild(timeSpan);
 
-      // Texto da mensagem
       const textDiv = document.createElement('div');
       textDiv.className = 'text';
       textDiv.textContent = msg.text;
@@ -376,31 +348,27 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Começar a escutar mensagens
+    // Escutar mensagens
     function startListeningMessages() {
-      // Limpa as mensagens antes de renderizar
       messagesContainer.innerHTML = '';
-
-      // Remove listener anterior se existir
       if (messagesListener) {
         messagesRef.off('child_added', messagesListener);
       }
-
       messagesListener = snapshot => {
         renderMessage(snapshot.key, snapshot.val());
       };
-
       messagesRef.on('child_added', messagesListener);
     }
 
-    // Enviar mensagem para Firebase
+    // Enviar mensagem
     function sendMessage() {
       const text = messageInput.value.trim();
       if (!text) return;
 
       const msgData = {
-        name: currentUser.name,
-        avatar: currentUser.avatar,
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email,
+        avatar: currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png',
         text: text,
         time: Date.now()
       };
@@ -410,39 +378,78 @@
       messageInput.focus();
     }
 
-    // Login botão
-    loginBtn.onclick = () => {
-      const name = usernameInput.value.trim();
-      if (!name) {
-        alert('Por favor, digite seu nome.');
-        usernameInput.focus();
+    // Fazer upload da foto e atualizar perfil
+    async function uploadAvatar(uid, file) {
+      const storageRef = storage.ref();
+      const avatarRef = storageRef.child(`avatars/${uid}.jpg`);
+      await avatarRef.put(file);
+      const photoURL = await avatarRef.getDownloadURL();
+      await auth.currentUser.updateProfile({ photoURL });
+      return photoURL;
+    }
+
+    // Botão login/registro
+    loginBtn.onclick = async () => {
+      errorMessage.textContent = '';
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const avatarFile = avatarInput.files[0];
+
+      if (!email) {
+        errorMessage.textContent = 'Digite o email.';
+        emailInput.focus();
         return;
       }
-      if (!avatarInput.files.length) {
-        alert('Por favor, escolha uma foto de perfil.');
-        avatarInput.focus();
+      if (!password) {
+        errorMessage.textContent = 'Digite a senha.';
+        passwordInput.focus();
         return;
       }
 
-      // Ler arquivo da foto como base64
-      const file = avatarInput.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        currentUser = {
-          name: name,
-          avatar: e.target.result
-        };
-        saveUser(currentUser);
+      try {
+        // Tentar login
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+        // Se já tem foto no perfil, segue
+        if (!currentUser.photoURL && avatarFile) {
+          const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+          currentUser.photoURL = photoURL;
+        }
         showChat();
-        startListeningMessages(); // Começa a escutar mensagens
-      };
-      reader.readAsDataURL(file);
+        startListeningMessages();
+
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          // Se usuário não existe, cria com email e senha
+          if (!avatarFile) {
+            errorMessage.textContent = 'Usuário não encontrado. Escolha uma foto para registrar.';
+            return;
+          }
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = userCredential.user;
+            // Faz upload da foto
+            const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            // Atualiza perfil com foto e displayName (email antes do @)
+            const displayName = email.split('@')[0];
+            await auth.currentUser.updateProfile({ displayName, photoURL });
+            currentUser.displayName = displayName;
+            currentUser.photoURL = photoURL;
+            showChat();
+            startListeningMessages();
+          } catch (regError) {
+            errorMessage.textContent = regError.message;
+          }
+        } else {
+          errorMessage.textContent = error.message;
+        }
+      }
     };
 
     // Botão enviar mensagem
     sendBtn.onclick = sendMessage;
 
-    // Enviar mensagem ao pressionar Enter no campo mensagem
+    // Enviar com Enter
     messageInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -451,12 +458,11 @@
     });
 
     // Botão logout
-    logoutBtn.onclick = () => {
+    logoutBtn.onclick = async () => {
       if (confirm('Deseja sair do chat?')) {
-        localStorage.removeItem('chatUser');
+        await auth.signOut();
         currentUser = null;
         messagesContainer.innerHTML = '';
-        // Remove o listener
         if (messagesListener) {
           messagesRef.off('child_added', messagesListener);
           messagesListener = null;
@@ -465,17 +471,18 @@
       }
     };
 
-    // Na inicialização, tenta carregar usuário salvo
-    window.onload = () => {
-      const user = loadUser();
-      if (user && user.name && user.avatar) {
+    // Observador de estado de autenticação
+    auth.onAuthStateChanged(user => {
+      if (user) {
         currentUser = user;
         showChat();
         startListeningMessages();
       } else {
+        currentUser = null;
         showLogin();
       }
-    };
+    });
+
   </script>
 
   <script>
