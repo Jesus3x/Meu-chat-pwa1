@@ -14,8 +14,164 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
-    /* Seu CSS mantido exatamente igual */
-    /* ... (não modifiquei o CSS) ... */
+    <style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+  }
+
+  body {
+    background: #ece5dd;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #login-screen, #chat-screen {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    width: 90%;
+    max-width: 400px;
+  }
+
+  #login-screen.active, #chat-screen.active {
+    display: flex;
+  }
+
+  input[type="email"],
+  input[type="password"],
+  input[type="file"],
+  input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+
+  button {
+    padding: 10px;
+    background: #075e54;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #0a7c6c;
+  }
+
+  #error-message {
+    color: red;
+    font-size: 14px;
+  }
+
+  #chat-screen {
+    height: 90vh;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #075e54;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-info img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    margin: 10px 0;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+
+  .msg {
+    margin-bottom: 10px;
+  }
+
+  .msg.sent {
+    text-align: right;
+  }
+
+  .msg.received {
+    text-align: left;
+  }
+
+  .msg-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .msg-header img {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+  }
+
+  .msg-header .name {
+    font-weight: bold;
+  }
+
+  .msg-header .time {
+    font-size: 0.8em;
+    color: #999;
+    margin-left: auto;
+  }
+
+  .text {
+    background: #dcf8c6;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 70%;
+    word-wrap: break-word;
+  }
+
+  .input-area {
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-area input {
+    flex: 1;
+  }
+
+  #logout-btn {
+    font-size: 18px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+  }
+
+</style>
+
   </style>
 </head>
 <body>
