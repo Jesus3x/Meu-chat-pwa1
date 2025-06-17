@@ -3,405 +3,306 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat Firebase - Login com Email/Senha e Foto</title>
+  <title>Chat Firebase PWA</title>
+
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#075e54" />
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (compat para facilitar) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
+    /* Seu CSS aqui (simplificado) */
     body {
       margin: 0;
       font-family: Arial, sans-serif;
+      background: #ece5dd;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
-
-    #login-screen,
-    #chat-screen {
+    #login-screen, #chat-screen {
       display: none;
       flex-direction: column;
       align-items: center;
       padding: 20px;
-      height: 100vh;
+      flex: 1;
     }
-
-    #login-screen {
-      justify-content: center;
-      background: #f5f5f5;
+    #login-screen.active, #chat-screen.active {
+      display: flex;
     }
-
-    #chat-screen {
-      display: none;
-      background: #ece5dd;
-    }
-
     input, button {
       padding: 10px;
       margin: 5px 0;
       font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
-
     button {
       background-color: #25d366;
       color: white;
       border: none;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      background: #075e54;
-      color: white;
-      padding: 10px;
+    button:hover {
+      background-color: #128c4a;
     }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .user-info img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-    }
-
     #messages {
       flex: 1;
       width: 100%;
       overflow-y: auto;
+      background: white;
+      border-radius: 8px;
       padding: 10px;
+      margin-bottom: 10px;
     }
-
     .msg {
-      margin: 10px;
+      margin-bottom: 10px;
+      max-width: 60%;
       padding: 10px;
       border-radius: 10px;
-      max-width: 60%;
+      word-wrap: break-word;
     }
-
     .sent {
       background: #dcf8c6;
       align-self: flex-end;
     }
-
     .received {
-      background: #ffffff;
+      background: #fff;
       align-self: flex-start;
-    }
-
-    .msg-header {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.85em;
-    }
-
-    .msg-header img {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-    }
-
-    .msg .text {
-      margin-top: 2px;
-    }
-
-    .input-area {
-      display: flex;
-      width: 100%;
-      padding: 10px;
-      background: #f0f0f0;
-    }
-
-    .input-area input {
-      flex: 1;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .input-area button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-left: 5px;
-      background: #25d366;
-      border: none;
-      border-radius: 6px;
-      color: white;
-    }
-
-    #error-message {
-      color: red;
-      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Tela Login -->
-  <div id="login-screen">
-    <h2>Entre no Chat</h2>
-    <div id="error-message"></div>
-    <input type="email" id="email-input" placeholder="Email" autocomplete="off" />
+  <!-- Tela de Login -->
+  <div id="login-screen" class="active">
+    <h2>Login ou Registrar</h2>
+    <div id="error-message" style="color:red; min-height:1.5em"></div>
+    <input type="email" id="email-input" placeholder="Email real" autocomplete="off" />
     <input type="password" id="password-input" placeholder="Senha" autocomplete="off" />
     <input type="file" id="avatar-input" accept="image/*" />
-    <button id="login-btn">Entrar / Registrar</button>
+    <button id="login-btn">Entrar</button>
+    <button id="register-btn" style="background-color:#075e54;">Registrar</button>
   </div>
 
-  <!-- Tela Chat -->
+  <!-- Tela do Chat -->
   <div id="chat-screen">
-    <header>
-      <div class="user-info">
-        <img id="user-avatar" src="" alt="Foto de perfil" />
+    <header style="width:100%; display:flex; justify-content:space-between; align-items:center; background:#075e54; color:#fff; padding:10px; border-radius:8px 8px 0 0;">
+      <div>
+        <img id="user-avatar" src="" alt="Avatar" style="width:32px; height:32px; border-radius:50%; vertical-align:middle; margin-right:10px;">
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn" title="Sair do chat">⎋</button>
+      <button id="logout-btn" style="background:#c0392b;">Sair</button>
     </header>
 
     <div id="messages"></div>
 
-    <div class="input-area">
-      <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
-      <button id="send-btn">➤</button>
+    <div style="display:flex; margin-top: 10px; width: 100%;">
+      <input type="text" id="message-input" placeholder="Digite a mensagem..." style="flex:1; border-radius:6px; border:1px solid #ccc; padding:10px; font-size:16px;" />
+      <button id="send-btn" style="margin-left:5px;">Enviar</button>
     </div>
   </div>
 
-  <script>
-    const firebaseConfig = {
-  apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
-  authDomain: "chat-on-1-4f38f.firebaseapp.com",
-  projectId: "chat-on-1-4f38f",
-  storageBucket: "chat-on-1-4f38f.appspot.com",
-  messagingSenderId: "499742357573",
-  appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
-  measurementId: "G-BMZW4Q4PDJ"
+<script>
+  // Config Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+    authDomain: "chat-on-1-4f38f.firebaseapp.com",
+    databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
+    projectId: "chat-on-1-4f38f",
+    storageBucket: "chat-on-1-4f38f.appspot.com",
+    messagingSenderId: "499742357573",
+    appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
+    measurementId: "G-BMZW4Q4PDJ"
+  };
+
+  // Inicializa Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
+  const messagesRef = db.ref('messages');
+
+  // DOM Elements
+  const loginScreen = document.getElementById('login-screen');
+  const chatScreen = document.getElementById('chat-screen');
+  const errorMessage = document.getElementById('error-message');
+  const emailInput = document.getElementById('email-input');
+  const passwordInput = document.getElementById('password-input');
+  const avatarInput = document.getElementById('avatar-input');
+  const loginBtn = document.getElementById('login-btn');
+  const registerBtn = document.getElementById('register-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const userAvatar = document.getElementById('user-avatar');
+  const userName = document.getElementById('user-name');
+  const messagesDiv = document.getElementById('messages');
+  const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  let currentUser = null;
+  let messagesListener = null;
+
+  // Função para exibir erro
+  function showError(msg) {
+    errorMessage.textContent = msg;
+  }
+
+  // Mostrar tela
+  function showLogin() {
+    loginScreen.classList.add('active');
+    chatScreen.classList.remove('active');
+    showError('');
+  }
+  function showChat() {
+    loginScreen.classList.remove('active');
+    chatScreen.classList.add('active');
+    userName.textContent = currentUser.displayName || currentUser.email;
+    userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+    messageInput.focus();
+  }
+
+  // Função para formatar horário
+  function formatTime(timestamp) {
+    const d = new Date(timestamp);
+    return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
+
+  // Renderiza uma mensagem
+  function renderMessage(key, msg) {
+    if (!msg.text) return;
+    const div = document.createElement('div');
+    div.classList.add('msg');
+    div.classList.add(msg.uid === currentUser.uid ? 'sent' : 'received');
+    div.textContent = `[${formatTime(msg.time)}] ${msg.name}: ${msg.text}`;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  // Escuta mensagens
+  function startListeningMessages() {
+    messagesDiv.innerHTML = '';
+    if (messagesListener) messagesRef.off('child_added', messagesListener);
+    messagesListener = snapshot => {
+      renderMessage(snapshot.key, snapshot.val());
     };
+    messagesRef.on('child_added', messagesListener);
+  }
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const storage = firebase.storage();
-    const messagesRef = db.ref("messages");
-
-    const loginScreen = document.getElementById('login-screen');
-    const chatScreen = document.getElementById('chat-screen');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const emailInput = document.getElementById('email-input');
-    const passwordInput = document.getElementById('password-input');
-    const avatarInput = document.getElementById('avatar-input');
-    const userAvatar = document.getElementById('user-avatar');
-    const userNameDisplay = document.getElementById('user-name');
-    const messagesContainer = document.getElementById('messages');
-    const messageInput = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const errorMessage = document.getElementById('error-message');
-
-    let currentUser = null;
-    let messagesListener = null;
-
-    function formatTime(timestamp) {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function showChat() {
-      loginScreen.style.display = 'none';
-      chatScreen.style.display = 'flex';
-      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
-      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
-      messageInput.focus();
-    }
-
-    function showLogin() {
-      loginScreen.style.display = 'flex';
-      chatScreen.style.display = 'none';
-      errorMessage.textContent = '';
-      emailInput.value = '';
-      passwordInput.value = '';
-      avatarInput.value = '';
-      messageInput.value = '';
-    }
-
-    function renderMessage(key, msg) {
-      if (!msg.name || !msg.text) return;
-
-      const isSent = currentUser && msg.uid === currentUser.uid;
-      const msgEl = document.createElement('div');
-      msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
-      msgEl.id = key;
-
-      const header = document.createElement('div');
-      header.className = 'msg-header';
-
-      const avatarImg = document.createElement('img');
-      avatarImg.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
-
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'name';
-      nameSpan.textContent = msg.name;
-
-      const timeSpan = document.createElement('span');
-      timeSpan.className = 'time';
-      timeSpan.textContent = formatTime(msg.time || Date.now());
-
-      header.appendChild(avatarImg);
-      header.appendChild(nameSpan);
-      header.appendChild(timeSpan);
-
-      const textDiv = document.createElement('div');
-      textDiv.className = 'text';
-      textDiv.textContent = msg.text;
-
-      msgEl.appendChild(header);
-      msgEl.appendChild(textDiv);
-
-      messagesContainer.appendChild(msgEl);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function startListeningMessages() {
-      messagesContainer.innerHTML = '';
-      if (messagesListener) messagesRef.off('child_added', messagesListener);
-      messagesListener = snapshot => renderMessage(snapshot.key, snapshot.val());
-      messagesRef.on('child_added', messagesListener);
-    }
-
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      const msgData = {
-        uid: currentUser.uid,
-        name: currentUser.displayName || currentUser.email,
-        avatar: currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png',
-        text: text,
-        time: Date.now()
-      };
-
-      messagesRef.push(msgData);
-      messageInput.value = '';
-      messageInput.focus();
-    }
-
-    async function uploadAvatar(uid, file) {
-      if (!file.type.startsWith("image/")) {
-        throw new Error("Por favor, selecione um arquivo de imagem válido.");
-      }
-      const storageRef = storage.ref();
-      const avatarRef = storageRef.child(`avatars/${uid}.jpg`);
-      await avatarRef.put(file);
-      return await avatarRef.getDownloadURL();
-    }
-
-    loginBtn.onclick = async () => {
-      errorMessage.textContent = '';
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-      const avatarFile = avatarInput.files[0];
-
-      if (!email) {
-        errorMessage.textContent = 'Digite o email.';
-        emailInput.focus();
-        return;
-      }
-      if (!password) {
-        errorMessage.textContent = 'Digite a senha.';
-        passwordInput.focus();
-        return;
-      }
-
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        currentUser = userCredential.user;
-
-        if (!currentUser.photoURL && avatarFile) {
-          const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-          await auth.currentUser.updateProfile({ photoURL });
-          currentUser.photoURL = photoURL;
-        }
-
-        showChat();
-        startListeningMessages();
-
-      } catch (error) {
-        if (error.code === 'auth/user-not-found') {
-          try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            currentUser = userCredential.user;
-
-            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
-            if (avatarFile && avatarFile.type.startsWith("image/")) {
-              photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-            }
-
-            const displayName = email.split('@')[0];
-            await auth.currentUser.updateProfile({ displayName, photoURL });
-
-            currentUser.displayName = displayName;
-            currentUser.photoURL = photoURL;
-
-            showChat();
-            startListeningMessages();
-
-          } catch (regError) {
-            errorMessage.textContent = regError.message;
-          }
-        } else {
-          errorMessage.textContent = error.message;
-        }
-      }
-    };
-
-    sendBtn.onclick = sendMessage;
-    messageInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMessage();
-      }
+  // Envia mensagem
+  function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    messagesRef.push({
+      uid: currentUser.uid,
+      name: currentUser.displayName || currentUser.email,
+      photoURL: currentUser.photoURL || '',
+      text,
+      time: Date.now()
     });
+    messageInput.value = '';
+  }
 
-    logoutBtn.onclick = async () => {
-      if (confirm('Deseja sair do chat?')) {
-        await auth.signOut();
-        currentUser = null;
-        messagesContainer.innerHTML = '';
-        if (messagesListener) {
-          messagesRef.off('child_added', messagesListener);
-          messagesListener = null;
-        }
-        showLogin();
-      }
-    };
+  // Upload da foto avatar
+  async function uploadAvatar(uid, file) {
+    if (!file.type.startsWith('image/')) throw new Error('Selecione uma imagem válida.');
+    const ref = storage.ref(`avatars/${uid}.jpg`);
+    await ref.put(file);
+    return ref.getDownloadURL();
+  }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        showChat();
-        startListeningMessages();
-      } else {
-        currentUser = null;
-        showLogin();
-      }
-    });
-  </script>
+  // Login
+  loginBtn.onclick = async () => {
+    showError('');
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const avatarFile = avatarInput.files[0];
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('✅ Service Worker registrado!'))
-        .catch(err => console.error('Erro no Service Worker:', err));
+    if (!email) return showError('Digite seu email.');
+    if (!password) return showError('Digite sua senha.');
+
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      currentUser = userCredential.user;
+      showChat();
+      startListeningMessages();
+    } catch (error) {
+      showError(error.message);
     }
-  </script>
+  };
+
+  // Registrar
+  registerBtn.onclick = async () => {
+    showError('');
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const avatarFile = avatarInput.files[0];
+
+    if (!email) return showError('Digite seu email.');
+    if (!password) return showError('Digite sua senha.');
+
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      currentUser = userCredential.user;
+      // Upload avatar se houver
+      let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+      if (avatarFile && avatarFile.type.startsWith('image/')) {
+        photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+      }
+      // Atualiza perfil
+      const displayName = email.split('@')[0];
+      await currentUser.updateProfile({ displayName, photoURL });
+      currentUser.displayName = displayName;
+      currentUser.photoURL = photoURL;
+      showChat();
+      startListeningMessages();
+    } catch (error) {
+      showError(error.message);
+    }
+  };
+
+  // Logout
+  logoutBtn.onclick = async () => {
+    await auth.signOut();
+    currentUser = null;
+    messagesDiv.innerHTML = '';
+    if (messagesListener) messagesRef.off('child_added', messagesListener);
+    messagesListener = null;
+    showLogin();
+  };
+
+  // Estado de autenticação
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      showChat();
+      startListeningMessages();
+    } else {
+      currentUser = null;
+      showLogin();
+    }
+  });
+
+  // Enviar mensagem ao clicar botão ou pressionar Enter
+  sendBtn.onclick = sendMessage;
+  messageInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Registrar service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('Service Worker registrado'))
+      .catch(console.error);
+  }
+</script>
 
 </body>
-  </html>
+</html>
