@@ -195,7 +195,14 @@
       return photoURL;
     }
 
+    // Botão login / registro
+    loginBtn.onclick = async () => {
+      errorMessage.textContent = '';
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const avatarFile = avatarInput.files[0];
 
+      if (!email) {
         errorMessage.textContent = 'Digite o email.';
         emailInput.focus();
         return;
