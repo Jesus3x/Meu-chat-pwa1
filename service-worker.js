@@ -1,44 +1,38 @@
 const CACHE_NAME = 'chat-cache-v1';
 const FILES_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js',
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js',
 ];
 
 self.addEventListener('install', evt => {
   evt.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', evt => {
   evt.waitUntil(
-    caches.keys().then(keyList => {
-      return Promise.all(
-        keyList.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
+    caches.keys().then(keys => 
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
         })
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', evt => {
-  if (evt.request.mode !== 'navigate') {
-    evt.respondWith(
-      caches.match(evt.request).then(resp => {
-        return resp || fetch(evt.request);
-      })
-    );
-  } else {
-    evt.respondWith(
-      fetch(evt.request).catch(() => caches.match('./'))
-    );
-  }
+  evt.respondWith(
+    caches.match(evt.request).then(resp => resp || fetch(evt.request))
+  );
 });
