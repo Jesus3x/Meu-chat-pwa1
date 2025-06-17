@@ -14,15 +14,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
-
     body {
       margin: 0;
-      padding: 0;
-      background: #e5ddd5;
+      font-family: Arial, sans-serif;
     }
 
     #login-screen,
@@ -30,36 +24,41 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
       padding: 20px;
+      height: 100vh;
     }
 
     #login-screen {
-      background: #ffffff;
-    }
-
-    #login-screen input,
-    #login-screen button {
-      margin: 8px 0;
-      padding: 10px;
-      width: 100%;
-      max-width: 300px;
+      justify-content: center;
+      background: #f5f5f5;
     }
 
     #chat-screen {
       display: none;
-      flex-direction: column;
-      height: 100vh;
+      background: #ece5dd;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #25d366;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
 
     header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
       background: #075e54;
       color: white;
       padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
     }
 
     .user-info {
@@ -76,17 +75,16 @@
 
     #messages {
       flex: 1;
-      padding: 10px;
+      width: 100%;
       overflow-y: auto;
-      background: #dcf8c6;
+      padding: 10px;
     }
 
     .msg {
-      margin-bottom: 10px;
-      padding: 8px;
-      border-radius: 8px;
-      max-width: 80%;
-      word-wrap: break-word;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 60%;
     }
 
     .sent {
@@ -95,7 +93,7 @@
     }
 
     .received {
-      background: #fff;
+      background: #ffffff;
       align-self: flex-start;
     }
 
@@ -118,11 +116,9 @@
 
     .input-area {
       display: flex;
-      align-items: center;
       width: 100%;
       padding: 10px;
       background: #f0f0f0;
-      gap: 10px;
     }
 
     .input-area input {
@@ -130,22 +126,17 @@
       padding: 10px;
       font-size: 16px;
       border: 1px solid #ccc;
-      border-radius: 20px;
+      border-radius: 6px;
     }
 
     .input-area button {
-      padding: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-left: 5px;
       background: #25d366;
-      color: white;
       border: none;
-      border-radius: 50%;
-      font-size: 20px;
-      cursor: pointer;
-      height: 48px;
-      width: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 6px;
+      color: white;
     }
 
     #error-message {
@@ -156,7 +147,7 @@
 </head>
 <body>
 
-  <!-- Tela de Login -->
+  <!-- Tela Login -->
   <div id="login-screen">
     <h2>Entre no Chat</h2>
     <div id="error-message"></div>
@@ -166,7 +157,7 @@
     <button id="login-btn">Entrar / Registrar</button>
   </div>
 
-  <!-- Tela do Chat -->
+  <!-- Tela Chat -->
   <div id="chat-screen">
     <header>
       <div class="user-info">
@@ -245,7 +236,6 @@
       if (!msg.name || !msg.text) return;
 
       const isSent = currentUser && msg.uid === currentUser.uid;
-
       const msgEl = document.createElement('div');
       msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
       msgEl.id = key;
@@ -281,12 +271,8 @@
 
     function startListeningMessages() {
       messagesContainer.innerHTML = '';
-      if (messagesListener) {
-        messagesRef.off('child_added', messagesListener);
-      }
-      messagesListener = snapshot => {
-        renderMessage(snapshot.key, snapshot.val());
-      };
+      if (messagesListener) messagesRef.off('child_added', messagesListener);
+      messagesListener = snapshot => renderMessage(snapshot.key, snapshot.val());
       messagesRef.on('child_added', messagesListener);
     }
 
@@ -314,9 +300,7 @@
       const storageRef = storage.ref();
       const avatarRef = storageRef.child(`avatars/${uid}.jpg`);
       await avatarRef.put(file);
-      const photoURL = await avatarRef.getDownloadURL();
-      await auth.currentUser.updateProfile({ photoURL });
-      return photoURL;
+      return await avatarRef.getDownloadURL();
     }
 
     loginBtn.onclick = async () => {
@@ -339,28 +323,36 @@
       try {
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
+
         if (!currentUser.photoURL && avatarFile) {
           const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+          await auth.currentUser.updateProfile({ photoURL });
           currentUser.photoURL = photoURL;
         }
+
         showChat();
         startListeningMessages();
+
       } catch (error) {
         if (error.code === 'auth/user-not-found') {
-          if (!avatarFile) {
-            errorMessage.textContent = 'Usuário não encontrado. Escolha uma foto para registrar.';
-            return;
-          }
           try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             currentUser = userCredential.user;
-            const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+
+            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+            if (avatarFile && avatarFile.type.startsWith("image/")) {
+              photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            }
+
             const displayName = email.split('@')[0];
             await auth.currentUser.updateProfile({ displayName, photoURL });
+
             currentUser.displayName = displayName;
             currentUser.photoURL = photoURL;
+
             showChat();
             startListeningMessages();
+
           } catch (regError) {
             errorMessage.textContent = regError.message;
           }
@@ -371,7 +363,6 @@
     };
 
     sendBtn.onclick = sendMessage;
-
     messageInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -411,5 +402,6 @@
         .catch(err => console.error('Erro no Service Worker:', err));
     }
   </script>
+
 </body>
 </html>
