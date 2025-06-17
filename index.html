@@ -291,40 +291,57 @@
         errorMessage.textContent = 'Preencha email e senha.';
         return;
       }
+try {
+  const userCredential = await auth.signInWithEmailAndPassword(email, password);
+  currentUser = userCredential.user;
 
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        currentUser = userCredential.user;
-        if (!currentUser.photoURL && avatarFile) {
-          const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-          currentUser.photoURL = photoURL;
-        }
-        showChat();
-        startListeningMessages();
-      } catch (error) {
-        if (error.code === 'auth/user-not-found') {
-          if (!avatarFile) {
-            errorMessage.textContent = 'Usuário não encontrado. Escolha uma foto para registrar.';
-            return;
-          }
-          try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            currentUser = userCredential.user;
-            const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-            const displayName = email.split('@')[0];
-            await auth.currentUser.updateProfile({ displayName, photoURL });
-            currentUser.displayName = displayName;
-            currentUser.photoURL = photoURL;
-            showChat();
-            startListeningMessages();
-          } catch (regError) {
-            errorMessage.textContent = traduzirErro(regError);
-          }
-        } else {
-          errorMessage.textContent = traduzirErro(error);
-        }
-      }
-    };
+  if (!currentUser.photoURL && avatarFile) {
+    const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+    currentUser.photoURL = photoURL;
+  }
+
+  showChat();
+  startListeningMessages();
+
+} catch (error) {
+  if (error.code === 'auth/user-not-found') {
+    const confirmar = confirm("Este e-mail ainda não está cadastrado. Deseja criar uma nova conta?");
+    if (!confirmar) return;
+
+    if (!avatarFile) {
+      errorMessage.textContent = 'Para criar uma nova conta, selecione uma imagem de perfil.';
+      return;
+    }
+
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      currentUser = userCredential.user;
+      const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+      const displayName = email.split('@')[0];
+
+      await auth.currentUser.updateProfile({ displayName, photoURL });
+      currentUser.displayName = displayName;
+      currentUser.photoURL = photoURL;
+
+      showChat();
+      startListeningMessages();
+
+    } catch (regError) {
+      errorMessage.textContent = regError.message;
+    }
+
+  } else if (error.code === 'auth/wrong-password') {
+    errorMessage.textContent = 'Senha incorreta. Tente novamente.';
+  } else if (error.code === 'auth/invalid-email') {
+    errorMessage.textContent = 'Formato de e-mail inválido.';
+  } else {
+    errorMessage.textContent = error.message;
+  }
+}
+
+        
+      
+    }
 
     sendBtn.onclick = sendMessage = () => {
       const text = messageInput.value.trim();
