@@ -1,39 +1,49 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Teste Login</title>
-<style>
-  #login-screen { display: flex; background: #eee; height: 100vh; justify-content: center; align-items: center; }
-  #chat-screen { display: none; background: #ccc; height: 100vh; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Teste Firebase Login</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
+  <h2>Login Firebase</h2>
+  <input type="email" id="email" placeholder="Email" /><br>
+  <input type="password" id="senha" placeholder="Senha" /><br>
+  <button onclick="loginOuRegistrar()">Entrar / Registrar</button>
+  <p id="status"></p>
 
-<div id="login-screen">
-  <button id="to-chat">Ir para Chat</button>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+      authDomain: "chat-on-1-4f38f.firebaseapp.com",
+      projectId: "chat-on-1-4f38f",
+    };
 
-<div id="chat-screen">
-  <button id="to-login">Voltar ao Login</button>
-</div>
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-<script>
-  const loginScreen = document.getElementById('login-screen');
-  const chatScreen = document.getElementById('chat-screen');
-  const toChatBtn = document.getElementById('to-chat');
-  const toLoginBtn = document.getElementById('to-login');
+    function loginOuRegistrar() {
+      const email = document.getElementById("email").value;
+      const senha = document.getElementById("senha").value;
+      const status = document.getElementById("status");
 
-  toChatBtn.onclick = () => {
-    loginScreen.style.display = 'none';
-    chatScreen.style.display = 'flex';
-  };
-
-  toLoginBtn.onclick = () => {
-    chatScreen.style.display = 'none';
-    loginScreen.style.display = 'flex';
-  };
-</script>
-
+      auth.signInWithEmailAndPassword(email, senha)
+        .then(user => {
+          status.textContent = "✅ Login bem-sucedido!";
+        })
+        .catch(error => {
+          if (error.code === 'auth/user-not-found') {
+            auth.createUserWithEmailAndPassword(email, senha)
+              .then(user => {
+                status.textContent = "👤 Usuário criado com sucesso!";
+              })
+              .catch(err => status.textContent = "Erro ao registrar: " + err.message);
+          } else {
+            status.textContent = "Erro: " + error.message;
+          }
+        });
+    }
+  </script>
 </body>
 </html>
