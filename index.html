@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Teste Firebase Login</title>
+  <meta charset="UTF-8">
+  <title>Login Firebase</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <h2>Login Firebase</h2>
-  <input type="email" id="email" placeholder="Email" /><br>
-  <input type="password" id="senha" placeholder="Senha" /><br>
+  <h2>Entrar no Chat</h2>
+  <input type="email" id="email" placeholder="Email" value="uemura@gmail.com"><br>
+  <input type="password" id="senha" placeholder="Senha"><br>
   <button onclick="loginOuRegistrar()">Entrar / Registrar</button>
   <p id="status"></p>
 
   <script>
+    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
       authDomain: "chat-on-1-4f38f.firebaseapp.com",
@@ -24,21 +25,28 @@
     const auth = firebase.auth();
 
     function loginOuRegistrar() {
-      const email = document.getElementById("email").value;
-      const senha = document.getElementById("senha").value;
-      const status = document.getElementById("status");
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+      const status = document.getElementById('status');
 
       auth.signInWithEmailAndPassword(email, senha)
-        .then(user => {
+        .then((userCredential) => {
           status.textContent = "✅ Login bem-sucedido!";
+          // redirecionar para o chat, por exemplo
         })
-        .catch(error => {
-          if (error.code === 'auth/user-not-found') {
+        .catch((error) => {
+          if (error.code === "auth/user-not-found") {
+            // Se não existir, criar novo usuário
             auth.createUserWithEmailAndPassword(email, senha)
-              .then(user => {
+              .then((userCredential) => {
                 status.textContent = "👤 Usuário criado com sucesso!";
+                // redirecionar para o chat, se quiser
               })
-              .catch(err => status.textContent = "Erro ao registrar: " + err.message);
+              .catch((err) => {
+                status.textContent = "Erro ao criar usuário: " + err.message;
+              });
+          } else if (error.code === "auth/wrong-password") {
+            status.textContent = "❌ Senha incorreta.";
           } else {
             status.textContent = "Erro: " + error.message;
           }
