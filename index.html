@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Login Firebase</title>
+  <title>Login no Chat</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <h2>Entrar no Chat</h2>
-  <input type="email" id="email" placeholder="Email" value="uemura@gmail.com"><br>
-  <input type="password" id="senha" placeholder="Senha"><br>
-  <button onclick="loginOuRegistrar()">Entrar / Registrar</button>
-  <p id="status"></p>
+  <h2>Entre no Chat</h2>
+  <input type="email" id="email" placeholder="Digite seu email" value="mietiam@hotmail.com"><br>
+  <input type="password" id="senha" placeholder="Digite sua senha"><br><br>
+  <button onclick="entrarOuRegistrar()">Entrar / Registrar</button>
+  <p id="msg"></p>
 
   <script>
-    // Configuração do Firebase
+    // Config Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
       authDomain: "chat-on-1-4f38f.firebaseapp.com",
@@ -24,31 +24,36 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
-    function loginOuRegistrar() {
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('senha').value;
-      const status = document.getElementById('status');
+    function entrarOuRegistrar() {
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("senha").value.trim();
+      const msg = document.getElementById("msg");
 
+      if (!email || !senha) {
+        msg.textContent = "⚠️ Email e senha são obrigatórios.";
+        return;
+      }
+
+      // Tenta login
       auth.signInWithEmailAndPassword(email, senha)
-        .then((userCredential) => {
-          status.textContent = "✅ Login bem-sucedido!";
-          // redirecionar para o chat, por exemplo
+        .then(() => {
+          msg.textContent = "✅ Login bem-sucedido!";
+          // redirecionar ou exibir chat
         })
         .catch((error) => {
-          if (error.code === "auth/user-not-found") {
-            // Se não existir, criar novo usuário
+          if (error.code === 'auth/user-not-found') {
+            // Cria novo usuário se não existir
             auth.createUserWithEmailAndPassword(email, senha)
-              .then((userCredential) => {
-                status.textContent = "👤 Usuário criado com sucesso!";
-                // redirecionar para o chat, se quiser
+              .then(() => {
+                msg.textContent = "👤 Usuário criado com sucesso!";
               })
-              .catch((err) => {
-                status.textContent = "Erro ao criar usuário: " + err.message;
+              .catch((e) => {
+                msg.textContent = "Erro ao registrar: " + e.message;
               });
-          } else if (error.code === "auth/wrong-password") {
-            status.textContent = "❌ Senha incorreta.";
+          } else if (error.code === 'auth/wrong-password') {
+            msg.textContent = "❌ Senha incorreta.";
           } else {
-            status.textContent = "Erro: " + error.message;
+            msg.textContent = "Erro: " + error.message;
           }
         });
     }
