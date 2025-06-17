@@ -6,205 +6,180 @@
   <title>Chat Firebase - Login com Email/Senha e Foto</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#075e54" />
-  <style>
-    
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    font-family: Arial, sans-serif;
-    background: #ece5dd;
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-  }
-
-  #login-screen, #chat-screen {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    padding: 20px;
-  }
-
-  #login-screen input {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    margin: 10px 0;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-  }
-
-  #login-screen button {
-    background: #075e54;
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-
-  #chat-screen {
-    display: none;
-    flex-direction: column;
-    height: 100vh;
-  }
-
-  header {
-    background: #075e54;
-    color: white;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .user-info img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-  }
-
-  #logout-btn {
-    background: transparent;
-    color: white;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-  }
-
-  #messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    background: #f0f0f0;
-  }
-
-  .msg {
-    margin-bottom: 10px;
-    max-width: 80%;
-    word-wrap: break-word;
-    padding: 10px;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .sent {
-    align-self: flex-end;
-    background: #dcf8c6;
-  }
-
-  .received {
-    align-self: flex-start;
-    background: #ffffff;
-  }
-
-  .msg-header {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.85em;
-    margin-bottom: 5px;
-  }
-
-  .msg-header img {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-  }
-
-  .msg .text {
-    margin-top: 2px;
-    font-size: 15px;
-  }
-
-  .input-area {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: #f0f0f0;
-    width: 100%;
-  }
-
-  .input-area input {
-    flex: 1;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-  }
-
-  .input-area button {
-    background: #25d366;
-    color: white;
-    border: none;
-    padding: 12px 18px;
-    font-size: 18px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .input-area button:hover {
-    background: #1ebe5d;
-  }
-
-  #error-message {
-    color: red;
-    margin-bottom: 10px;
-    font-size: 14px;
-  }
-
-    </style>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e5ddd5;
+    }
+
+    #login-screen,
+    #chat-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    #login-screen {
+      background: #ffffff;
+    }
+
+    #login-screen input,
+    #login-screen button {
+      margin: 8px 0;
+      padding: 10px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    #chat-screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #075e54;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-info img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    #messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: #dcf8c6;
+    }
+
+    .msg {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .sent {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
+
+    .received {
+      background: #fff;
+      align-self: flex-start;
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85em;
+    }
+
+    .msg-header img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+
+    .msg .text {
+      margin-top: 2px;
+    }
+
+    .input-area {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 10px;
+      background: #f0f0f0;
+      gap: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+    }
+
+    .input-area button {
+      padding: 10px;
+      background: #25d366;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      height: 48px;
+      width: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #error-message {
+      color: red;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Login -->
+  <!-- Tela de Login -->
   <div id="login-screen">
     <h2>Entre no Chat</h2>
     <div id="error-message"></div>
-    <input type="email" id="email-input" placeholder="Email" />
-    <input type="password" id="password-input" placeholder="Senha" />
+    <input type="email" id="email-input" placeholder="Email" autocomplete="off" />
+    <input type="password" id="password-input" placeholder="Senha" autocomplete="off" />
     <input type="file" id="avatar-input" accept="image/*" />
     <button id="login-btn">Entrar / Registrar</button>
   </div>
 
-  <!-- Chat -->
+  <!-- Tela do Chat -->
   <div id="chat-screen">
     <header>
       <div class="user-info">
-        <img id="user-avatar" src="" alt="Avatar" />
+        <img id="user-avatar" src="" alt="Foto de perfil" />
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn">⎋</button>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
     </header>
+
     <div id="messages"></div>
+
     <div class="input-area">
-      <input type="text" id="message-input" placeholder="Digite uma mensagem" />
+      <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
       <button id="send-btn">➤</button>
     </div>
   </div>
@@ -243,30 +218,34 @@
     let currentUser = null;
     let messagesListener = null;
 
-    function showChat() {
-      loginScreen.style.display = 'none';
-      chatScreen.style.display = 'flex';
-      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
-      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
-    }
-
-    function showLogin() {
-      loginScreen.style.display = 'flex';
-      chatScreen.style.display = 'none';
-      emailInput.value = '';
-      passwordInput.value = '';
-      avatarInput.value = '';
-      errorMessage.textContent = '';
-    }
-
     function formatTime(timestamp) {
       const date = new Date(timestamp);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function showChat() {
+      loginScreen.style.display = 'none';
+      chatScreen.style.display = 'flex';
+      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
+      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+      messageInput.focus();
+    }
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      chatScreen.style.display = 'none';
+      errorMessage.textContent = '';
+      emailInput.value = '';
+      passwordInput.value = '';
+      avatarInput.value = '';
+      messageInput.value = '';
+    }
+
     function renderMessage(key, msg) {
       if (!msg.name || !msg.text) return;
+
       const isSent = currentUser && msg.uid === currentUser.uid;
+
       const msgEl = document.createElement('div');
       msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
       msgEl.id = key;
@@ -311,15 +290,33 @@
       messagesRef.on('child_added', messagesListener);
     }
 
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      const msgData = {
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email,
+        avatar: currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png',
+        text: text,
+        time: Date.now()
+      };
+
+      messagesRef.push(msgData);
+      messageInput.value = '';
+      messageInput.focus();
+    }
+
     async function uploadAvatar(uid, file) {
-      if (!file || !file.type.startsWith("image/")) {
-        throw new Error("Por favor, selecione uma imagem válida.");
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Por favor, selecione um arquivo de imagem válido.");
       }
-      const avatarRef = storage.ref().child(`avatars/${uid}.jpg`);
+      const storageRef = storage.ref();
+      const avatarRef = storageRef.child(`avatars/${uid}.jpg`);
       await avatarRef.put(file);
-      const url = await avatarRef.getDownloadURL();
-      await auth.currentUser.updateProfile({ photoURL: url });
-      return url;
+      const photoURL = await avatarRef.getDownloadURL();
+      await auth.currentUser.updateProfile({ photoURL });
+      return photoURL;
     }
 
     loginBtn.onclick = async () => {
@@ -328,76 +325,52 @@
       const password = passwordInput.value;
       const avatarFile = avatarInput.files[0];
 
-      if (!email || !password) {
-        errorMessage.textContent = 'Preencha email e senha.';
+      if (!email) {
+        errorMessage.textContent = 'Digite o email.';
+        emailInput.focus();
         return;
       }
-try {
-  const userCredential = await auth.signInWithEmailAndPassword(email, password);
-  currentUser = userCredential.user;
+      if (!password) {
+        errorMessage.textContent = 'Digite a senha.';
+        passwordInput.focus();
+        return;
+      }
 
-  if (!currentUser.photoURL && avatarFile) {
-    const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-    currentUser.photoURL = photoURL;
-  }
-
-  showChat();
-  startListeningMessages();
-
-} catch (error) {
-  if (error.code === 'auth/user-not-found') {
-    const confirmar = confirm("Este e-mail ainda não está cadastrado. Deseja criar uma nova conta?");
-    if (!confirmar) return;
-
-    if (!avatarFile) {
-      errorMessage.textContent = 'Para criar uma nova conta, selecione uma imagem de perfil.';
-      return;
-    }
-
-    try {
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      currentUser = userCredential.user;
-      const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-      const displayName = email.split('@')[0];
-
-      await auth.currentUser.updateProfile({ displayName, photoURL });
-      currentUser.displayName = displayName;
-      currentUser.photoURL = photoURL;
-
-      showChat();
-      startListeningMessages();
-
-    } catch (regError) {
-      errorMessage.textContent = regError.message;
-    }
-
-  } else if (error.code === 'auth/wrong-password') {
-    errorMessage.textContent = 'Senha incorreta. Tente novamente.';
-  } else if (error.code === 'auth/invalid-email') {
-    errorMessage.textContent = 'Formato de e-mail inválido.';
-  } else {
-    errorMessage.textContent = error.message;
-  }
-}
-
-        
-      
-    }
-
-    sendBtn.onclick = sendMessage = () => {
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      messagesRef.push({
-        uid: currentUser.uid,
-        name: currentUser.displayName || currentUser.email,
-        avatar: currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png',
-        text,
-        time: Date.now()
-      });
-      messageInput.value = '';
-      messageInput.focus();
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+        if (!currentUser.photoURL && avatarFile) {
+          const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+          currentUser.photoURL = photoURL;
+        }
+        showChat();
+        startListeningMessages();
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          if (!avatarFile) {
+            errorMessage.textContent = 'Usuário não encontrado. Escolha uma foto para registrar.';
+            return;
+          }
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = userCredential.user;
+            const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            const displayName = email.split('@')[0];
+            await auth.currentUser.updateProfile({ displayName, photoURL });
+            currentUser.displayName = displayName;
+            currentUser.photoURL = photoURL;
+            showChat();
+            startListeningMessages();
+          } catch (regError) {
+            errorMessage.textContent = regError.message;
+          }
+        } else {
+          errorMessage.textContent = error.message;
+        }
+      }
     };
+
+    sendBtn.onclick = sendMessage;
 
     messageInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
@@ -410,6 +383,11 @@ try {
       if (confirm('Deseja sair do chat?')) {
         await auth.signOut();
         currentUser = null;
+        messagesContainer.innerHTML = '';
+        if (messagesListener) {
+          messagesRef.off('child_added', messagesListener);
+          messagesListener = null;
+        }
         showLogin();
       }
     };
@@ -420,37 +398,18 @@ try {
         showChat();
         startListeningMessages();
       } else {
+        currentUser = null;
         showLogin();
       }
     });
-
-    function traduzirErro(error) {
-      switch (error.code) {
-        case 'auth/wrong-password':
-          return 'Senha incorreta.';
-        case 'auth/user-not-found':
-          return 'Usuário não encontrado.';
-        case 'auth/too-many-requests':
-          return 'Muitas tentativas. Tente mais tarde.';
-        case 'auth/email-already-in-use':
-          return 'Email já está em uso.';
-        case 'auth/invalid-email':
-          return 'Email inválido.';
-        case 'auth/weak-password':
-          return 'Senha fraca. Mínimo 6 caracteres.';
-        default:
-          return error.message || 'Erro desconhecido.';
-      }
-    }
   </script>
 
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
         .then(() => console.log('✅ Service Worker registrado!'))
-        .catch(err => console.error('Erro SW:', err));
+        .catch(err => console.error('Erro no Service Worker:', err));
     }
   </script>
-
 </body>
 </html>
