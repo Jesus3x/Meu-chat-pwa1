@@ -18,7 +18,6 @@
       margin: 0;
       font-family: Arial, sans-serif;
     }
-
     #login-screen, #chat-screen {
       display: none;
       flex-direction: column;
@@ -26,29 +25,19 @@
       padding: 20px;
       height: 100vh;
     }
-
-    #login-screen {
-      justify-content: center;
-      background: #f5f5f5;
-    }
-
-    #chat-screen {
-      background: #ece5dd;
-    }
-
+    #login-screen { justify-content: center; background: #f5f5f5; }
+    #chat-screen { background: #ece5dd; }
     input, button {
       padding: 10px;
       margin: 5px 0;
       font-size: 16px;
     }
-
     button {
       background-color: #25d366;
       color: white;
       border: none;
       cursor: pointer;
     }
-
     header {
       display: flex;
       justify-content: space-between;
@@ -58,67 +47,50 @@
       color: white;
       padding: 10px;
     }
-
     .user-info {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
     .user-info img {
       width: 32px;
       height: 32px;
       border-radius: 50%;
     }
-
     #messages {
       flex: 1;
       width: 100%;
       overflow-y: auto;
       padding: 10px;
     }
-
     .msg {
       margin: 10px;
       padding: 10px;
       border-radius: 10px;
       max-width: 60%;
     }
-
-    .sent {
-      background: #dcf8c6;
-      align-self: flex-end;
-    }
-
-    .received {
-      background: #ffffff;
-      align-self: flex-start;
-    }
-
+    .sent { background: #dcf8c6; align-self: flex-end; }
+    .received { background: #ffffff; align-self: flex-start; }
     .msg-header {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 0.85em;
     }
-
     .msg-header img {
       width: 24px;
       height: 24px;
       border-radius: 50%;
     }
-
     .msg .text {
       margin-top: 2px;
     }
-
     .input-area {
       display: flex;
       width: 100%;
       padding: 10px;
       background: #f0f0f0;
     }
-
     .input-area input {
       flex: 1;
       padding: 10px;
@@ -126,7 +98,6 @@
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-
     .input-area button {
       padding: 10px 20px;
       font-size: 16px;
@@ -136,7 +107,6 @@
       border-radius: 6px;
       color: white;
     }
-
     #error-message {
       color: red;
       margin-bottom: 10px;
@@ -145,28 +115,28 @@
 </head>
 <body>
 
-  <!-- Tela de Login -->
+  <!-- Tela Login -->
   <div id="login-screen">
     <h2>Entre no Chat</h2>
     <div id="error-message"></div>
-    <input type="email" id="email-input" placeholder="Email" />
-    <input type="password" id="password-input" placeholder="Senha" />
+    <input type="email" id="email-input" placeholder="Email" autocomplete="off" />
+    <input type="password" id="password-input" placeholder="Senha" autocomplete="off" />
     <input type="file" id="avatar-input" accept="image/*" />
     <button id="login-btn">Entrar / Registrar</button>
   </div>
 
-  <!-- Tela de Chat -->
+  <!-- Tela Chat -->
   <div id="chat-screen">
     <header>
       <div class="user-info">
-        <img id="user-avatar" src="" alt="Avatar" />
+        <img id="user-avatar" src="" alt="Foto de perfil" />
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn">⎋</button>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
     </header>
     <div id="messages"></div>
     <div class="input-area">
-      <input type="text" id="message-input" placeholder="Digite sua mensagem..." />
+      <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
       <button id="send-btn">➤</button>
     </div>
   </div>
@@ -187,6 +157,7 @@
     const auth = firebase.auth();
     const db = firebase.database();
     const storage = firebase.storage();
+    const messagesRef = db.ref("messages");
 
     const loginScreen = document.getElementById('login-screen');
     const chatScreen = document.getElementById('chat-screen');
@@ -203,7 +174,7 @@
     const errorMessage = document.getElementById('error-message');
 
     let currentUser = null;
-    const messagesRef = db.ref('messages');
+    let messagesListener = null;
 
     function showChat() {
       loginScreen.style.display = 'none';
@@ -215,46 +186,106 @@
     function showLogin() {
       loginScreen.style.display = 'flex';
       chatScreen.style.display = 'none';
+      emailInput.value = '';
+      passwordInput.value = '';
+      avatarInput.value = '';
+      messageInput.value = '';
       errorMessage.textContent = '';
     }
 
     function renderMessage(key, msg) {
-      if (!msg.text || !msg.name) return;
+      if (!msg.name || !msg.text) return;
+      const isSent = currentUser && msg.uid === currentUser.uid;
       const msgEl = document.createElement('div');
-      msgEl.className = 'msg ' + (msg.uid === currentUser.uid ? 'sent' : 'received');
+      msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
+      msgEl.id = key;
 
       const header = document.createElement('div');
       header.className = 'msg-header';
+      const avatarImg = document.createElement('img');
+      avatarImg.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = msg.name;
+      const timeSpan = document.createElement('span');
+      const date = new Date(msg.time || Date.now());
+      timeSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      const avatar = document.createElement('img');
-      avatar.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
+      header.appendChild(avatarImg);
+      header.appendChild(nameSpan);
+      header.appendChild(timeSpan);
 
-      const name = document.createElement('span');
-      name.textContent = msg.name;
-
-      const time = document.createElement('span');
-      time.textContent = new Date(msg.time).toLocaleTimeString();
-
-      header.appendChild(avatar);
-      header.appendChild(name);
-      header.appendChild(time);
-
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.textContent = msg.text;
+      const textDiv = document.createElement('div');
+      textDiv.className = 'text';
+      textDiv.textContent = msg.text;
 
       msgEl.appendChild(header);
-      msgEl.appendChild(text);
+      msgEl.appendChild(textDiv);
 
       messagesContainer.appendChild(msgEl);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function sendMessage() {
+    function startListeningMessages() {
+      messagesContainer.innerHTML = '';
+      if (messagesListener) messagesRef.off('child_added', messagesListener);
+      messagesListener = snapshot => renderMessage(snapshot.key, snapshot.val());
+      messagesRef.on('child_added', messagesListener);
+    }
+
+    async function uploadAvatar(uid, file) {
+      const avatarRef = storage.ref().child(`avatars/${uid}.jpg`);
+      await avatarRef.put(file);
+      return await avatarRef.getDownloadURL();
+    }
+
+    async function handleLogin() {
+      errorMessage.textContent = '';
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const avatarFile = avatarInput.files[0];
+
+      if (!email || !password) {
+        errorMessage.textContent = 'Preencha o e-mail e a senha.';
+        return;
+      }
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = userCredential.user;
+
+            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+            if (avatarFile) {
+              photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            }
+
+            const displayName = email.split('@')[0];
+            await currentUser.updateProfile({ displayName, photoURL });
+          } catch (createErr) {
+            errorMessage.textContent = createErr.message;
+            return;
+          }
+        } else {
+          errorMessage.textContent = 'Erro: ' + error.message;
+          return;
+        }
+      }
+
+      showChat();
+      startListeningMessages();
+    }
+
+    loginBtn.onclick = handleLogin;
+
+    sendBtn.onclick = () => {
       const text = messageInput.value.trim();
       if (!text) return;
 
-      const msg = {
+      const msgData = {
         uid: currentUser.uid,
         name: currentUser.displayName || currentUser.email,
         avatar: currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png',
@@ -262,72 +293,19 @@
         time: Date.now()
       };
 
-      messagesRef.push(msg);
+      messagesRef.push(msgData);
       messageInput.value = '';
-    }
-
-    async function uploadAvatar(uid, file) {
-      const ref = storage.ref().child('avatars/' + uid + '.jpg');
-      await ref.put(file);
-      return await ref.getDownloadURL();
-    }
-
-    loginBtn.onclick = async () => {
-      errorMessage.textContent = '';
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
-      const avatarFile = avatarInput.files[0];
-
-      if (!email || !password) {
-        errorMessage.textContent = 'Preencha todos os campos!';
-        return;
-      }
-
-      try {
-        const userCred = await auth.signInWithEmailAndPassword(email, password);
-        currentUser = userCred.user;
-
-        if (!currentUser.photoURL && avatarFile) {
-          const photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-          await currentUser.updateProfile({ photoURL });
-          currentUser.photoURL = photoURL;
-        }
-
-        showChat();
-      } catch (err) {
-        if (err.code === 'auth/user-not-found') {
-          try {
-            const userCred = await auth.createUserWithEmailAndPassword(email, password);
-            currentUser = userCred.user;
-
-            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
-            if (avatarFile) photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-
-            await currentUser.updateProfile({
-              displayName: email.split('@')[0],
-              photoURL
-            });
-
-            showChat();
-          } catch (regErr) {
-            errorMessage.textContent = regErr.message;
-          }
-        } else {
-          errorMessage.textContent = 'Erro: ' + err.message;
-        }
-      }
-
-      messagesRef.on('child_added', snap => renderMessage(snap.key, snap.val()));
+      messageInput.focus();
     };
 
-    sendBtn.onclick = sendMessage;
     messageInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') sendMessage();
+      if (e.key === 'Enter') sendBtn.click();
     });
 
     logoutBtn.onclick = async () => {
       await auth.signOut();
-      messagesContainer.innerHTML = '';
+      currentUser = null;
+      messagesRef.off();
       showLogin();
     };
 
@@ -335,19 +313,16 @@
       if (user) {
         currentUser = user;
         showChat();
-        messagesRef.on('child_added', snap => renderMessage(snap.key, snap.val()));
-      } else {
-        showLogin();
+        startListeningMessages();
       }
     });
   </script>
 
-  <!-- Service Worker opcional -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('✅ Service Worker registrado!'))
-        .catch(err => console.error('Erro ao registrar SW:', err));
+        .then(() => console.log('✅ Service Worker registrado'))
+        .catch(err => console.error('Erro no SW:', err));
     }
   </script>
 
