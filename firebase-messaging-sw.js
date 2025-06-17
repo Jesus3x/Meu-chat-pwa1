@@ -2,13 +2,14 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyDAYD7DhRovj0PYHUSpOq5YE1rQXIiOPkc",
-  authDomain: "chat-trader.firebaseapp.com",
-  projectId: "chat-trader",
-  storageBucket: "chat-trader.firebasestorage.app",
-  messagingSenderId: "722204996123",
-  appId: "1:722204996123:web:6ab7fd6a6b5646c3e0bebe",
-  measurementId: "G-N36TE38K29"
+  apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+  authDomain: "chat-on-1-4f38f.firebaseapp.com",
+  databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
+  projectId: "chat-on-1-4f38f",
+  storageBucket: "chat-on-1-4f38f.firebasestorage.app",
+  messagingSenderId: "499742357573",
+  appId: "1:499742357573:web:ea19d23862b1104db74b2c",
+  measurementId: "G-442TLFZD05"
 });
 
 const messaging = firebase.messaging();
@@ -16,11 +17,11 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(payload => {
   console.log('[firebase-messaging-sw.js] Mensagem recebida no background ', payload);
 
-  const notificationTitle = payload.notification.title || 'Nova mensagem do Chat Trader';
+  const notificationTitle = payload.notification.title || 'Nova mensagem do Chat';
   const notificationOptions = {
     body: payload.notification.body || 'Você tem uma nova notificação.',
-    icon: payload.notification.icon || '/icon-192x192.png', // seu ícone padrão aqui
-    badge: '/badge-72x72.png', // opcional, se tiver
+    icon: payload.notification.icon || '/icon-192x192.png',
+    badge: '/badge-72x72.png',
     vibrate: [100, 50, 100],
     actions: [
       {
@@ -30,27 +31,24 @@ messaging.onBackgroundMessage(payload => {
       }
     ],
     data: {
-      urlToOpen: 'https://jesus3x.github.io/Chat-trader/' // link para abrir ao clicar na notificação
+      urlToOpen: 'https://seu-site-ou-app.com/' // ajuste para seu link real
     }
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Evento para tratar clique na notificação
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   const urlToOpen = event.notification.data.urlToOpen;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Se já existir uma aba aberta com o app, foca nela
       for (const client of windowClients) {
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      // Se não, abre uma nova aba
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
