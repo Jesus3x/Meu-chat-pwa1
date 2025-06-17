@@ -362,9 +362,12 @@
 
     // Upload do avatar no Firebase Storage e atualização do perfil
     async function uploadAvatar(uid, file) {
-      // Limite simples para arquivo (exemplo 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        throw new Error("Arquivo de imagem muito grande. Máx 2MB.");
+    
+      if (!file.type.startsWith("image/")) {
+  throw new Error("Por favor, selecione um arquivo de imagem válido.");
+}
+
+}
       }
       const storageRef = storage.ref();
       const avatarRef = storageRef.child(`avatars/${uid}.jpg`);
