@@ -1,19 +1,19 @@
 {
-  "name": "Chat em Tempo Real",
-  "short_name": "ChatRealTime",
+  "name": "Chat Firebase PWA",
+  "short_name": "ChatFirebase",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#ece5dd",
+  "background_color": "#075e54",
   "theme_color": "#075e54",
-  "description": "Chat em tempo real estilo WhatsApp usando Firebase",
+  "description": "Chat Firebase com login, registro, avatar e PWA",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "https://i.imgur.com/xx7JfUD.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "https://i.imgur.com/xx7JfUD.png",
       "sizes": "512x512",
       "type": "image/png"
     }
