@@ -2,151 +2,155 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat Seguro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat em Tempo Real</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #e5ddd5;
       margin: 0;
       padding: 0;
+      background-color: #f0f0f0;
     }
-    header {
-      background-color: #075e54;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-    }
+
     #login-container, #chat-container {
-      max-width: 500px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: white;
-      border-radius: 8px;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    #chat-container { display: none; }
+
+    input, button {
+      width: 100%;
+      margin: 5px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    #mensagens {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
     .message {
-      border-bottom: 1px solid #eee;
-      padding: 0.5rem 0;
+      background: #e0f7fa;
+      padding: 8px;
+      margin: 4px 0;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
 
-<header>Chat Seguro</header>
+  <div id="login-container">
+    <h2>Entrar no Chat</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="senha" placeholder="Senha" />
+    <button id="entrarBtn">Entrar</button>
+  </div>
 
-<div id="login-container">
-  <h2>Entrar no Chat</h2>
-  <input type="email" id="email" placeholder="Email" /><br/><br/>
-  <input type="password" id="senha" placeholder="Senha" /><br/><br/>
-  <button id="entrar">Entrar</button>
-</div>
+  <div id="chat-container" style="display:none;">
+    <h2>Chat</h2>
+    <div id="mensagens"></div>
+    <input type="text" id="mensagem" placeholder="Digite sua mensagem" />
+    <button id="enviarBtn">Enviar</button>
+    <button id="sairBtn">Sair</button>
+  </div>
 
-<div id="chat-container">
-  <h2>Bem-vindo ao Chat</h2>
-  <div id="mensagens" style="height:200px; overflow-y:auto; border:1px solid #ccc; padding:10px;"></div>
-  <input type="text" id="mensagem" placeholder="Digite sua mensagem" />
-  <button id="enviar">Enviar</button>
-  <br/><br/>
-  <button id="sair">Sair</button>
-</div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+      authDomain: "chat-on-1-4f38f.firebaseapp.com",
+      databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
+      projectId: "chat-on-1-4f38f",
+      storageBucket: "chat-on-1-4f38f.appspot.com",
+      messagingSenderId: "499742357573",
+      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c"
+    };
 
-<script>
-  // Configuração do Firebase (substitua com a sua se mudar)
-  const firebaseConfig = {
-    apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
-    authDomain: "chat-on-1-4f38f.firebaseapp.com",
-    databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
-    projectId: "chat-on-1-4f38f",
-    storageBucket: "chat-on-1-4f38f.appspot.com",
-    messagingSenderId: "499742357573",
-    appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
-    measurementId: "G-BMZW4Q4PDJ"
-  };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
+    const emailInput = document.getElementById("email");
+    const senhaInput = document.getElementById("senha");
+    const entrarBtn = document.getElementById("entrarBtn");
+    const sairBtn = document.getElementById("sairBtn");
+    const enviarBtn = document.getElementById("enviarBtn");
+    const mensagemInput = document.getElementById("mensagem");
+    const mensagens = document.getElementById("mensagens");
+    const loginContainer = document.getElementById("login-container");
+    const chatContainer = document.getElementById("chat-container");
 
-  const loginContainer = document.getElementById('login-container');
-  const chatContainer = document.getElementById('chat-container');
-  const emailInput = document.getElementById('email');
-  const senhaInput = document.getElementById('senha');
-  const entrarBtn = document.getElementById('entrar');
-  const sairBtn = document.getElementById('sair');
-  const enviarBtn = document.getElementById('enviar');
-  const mensagemInput = document.getElementById('mensagem');
-  const mensagens = document.getElementById('mensagens');
+    entrarBtn.onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = senhaInput.value.trim();
 
-  entrarBtn.onclick = () => {
-  loginBtn.onclick = async () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-
-  if (!email || !password) {
-    alert('Por favor, preencha todos os campos.');
-    return;
-  }
-
-  try {
-    // Tenta fazer login
-    await auth.signInWithEmailAndPassword(email, password);
-  } catch (error) {
-    // Se não conseguir, tenta criar conta
-    if (error.code === 'auth/user-not-found') {
-      try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        alert('Conta criada com sucesso!');
-      } catch (createError) {
-        alert('Erro ao criar conta: ' + createError.message);
+      if (!email || !password) {
+        alert('Por favor, preencha todos os campos.');
+        return;
       }
-    } else {
-      alert('Erro no login: ' + error.message);
-    }
-  }
-};
-  
- sairBtn.onclick = () => {
-    auth.signOut();
-  };
 
-  enviarBtn.onclick = () => {
-    const mensagem = mensagemInput.value;
-    if (mensagem.trim() !== "") {
-      db.ref("mensagens").push({
-        texto: mensagem,
-        usuario: auth.currentUser.email,
-        timestamp: Date.now()
-      });
-      mensagemInput.value = "";
-    }
-  };
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          try {
+            await auth.createUserWithEmailAndPassword(email, password);
+            alert('Conta criada com sucesso!');
+          } catch (createError) {
+            alert('Erro ao criar conta: ' + createError.message);
+          }
+        } else {
+          alert('Erro no login: ' + error.message);
+        }
+      }
+    };
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      loginContainer.style.display = "none";
-      chatContainer.style.display = "block";
-      mensagens.innerHTML = "";
+    sairBtn.onclick = () => {
+      auth.signOut();
+    };
 
-      db.ref("mensagens").on("child_added", snap => {
-        const msg = snap.val();
-        const div = document.createElement("div");
-        div.className = "message";
-        div.textContent = msg.usuario + ": " + msg.texto;
-        mensagens.appendChild(div);
-        mensagens.scrollTop = mensagens.scrollHeight;
-      });
-    } else {
-      loginContainer.style.display = "block";
-      chatContainer.style.display = "none";
-    }
-  });
-</script>
+    enviarBtn.onclick = () => {
+      const mensagem = mensagemInput.value;
+      if (mensagem.trim() !== "") {
+        db.ref("mensagens").push({
+          texto: mensagem,
+          usuario: auth.currentUser.email,
+          timestamp: Date.now()
+        });
+        mensagemInput.value = "";
+      }
+    };
 
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginContainer.style.display = "none";
+        chatContainer.style.display = "block";
+        mensagens.innerHTML = "";
+
+        db.ref("mensagens").on("child_added", snap => {
+          const msg = snap.val();
+          const div = document.createElement("div");
+          div.className = "message";
+          div.textContent = msg.usuario + ": " + msg.texto;
+          mensagens.appendChild(div);
+          mensagens.scrollTop = mensagens.scrollHeight;
+        });
+      } else {
+        loginContainer.style.display = "block";
+        chatContainer.style.display = "none";
+      }
+    });
+  </script>
 </body>
 </html>
