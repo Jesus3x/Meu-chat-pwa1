@@ -1,19 +1,19 @@
 {
-  "name": "Chat Firebase PWA",
-  "short_name": "ChatFirebase",
-  "start_url": ".",
+  "name": "Chat Firebase",
+  "short_name": "Chat",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#075e54",
   "theme_color": "#075e54",
-  "description": "Chat Firebase com login, registro, avatar e PWA",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://i.imgur.com/xx7JfUD.png",
+      "src": "icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://i.imgur.com/xx7JfUD.png",
+      "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
