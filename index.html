@@ -2,71 +2,47 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat em Tempo Real</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat Firebase - Login com Email/Senha e Foto</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#075e54" />
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f0f0;
-    }
-
-    #login-container, #chat-container {
-      max-width: 400px;
-      margin: 50px auto;
-      padding: 20px;
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    input, button {
-      width: 100%;
-      margin: 5px 0;
-      padding: 10px;
-      font-size: 16px;
-    }
-
-    #mensagens {
-      max-height: 300px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-
-    .message {
-      background: #e0f7fa;
-      padding: 8px;
-      margin: 4px 0;
-      border-radius: 5px;
-    }
+    /* Seu CSS aqui (igual ao que você já tem) */
   </style>
 </head>
 <body>
-
-  <div id="login-container">
-    <h2>Entrar no Chat</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="senha" placeholder="Senha" />
-    <button id="entrarBtn">Entrar</button>
+  <div id="login-screen">
+    <h2>Entre no Chat</h2>
+    <div id="error-message"></div>
+    <input type="email" id="email-input" placeholder="Email" />
+    <input type="password" id="password-input" placeholder="Senha" />
+    <input type="file" id="avatar-input" accept="image/*" />
+    <button id="login-btn">Entrar / Registrar</button>
   </div>
-
-  <div id="chat-container" style="display:none;">
-    <h2>Chat</h2>
-    <div id="mensagens"></div>
-    <input type="text" id="mensagem" placeholder="Digite sua mensagem" />
-    <button id="enviarBtn">Enviar</button>
-    <button id="sairBtn">Sair</button>
+  <div id="chat-screen">
+    <header>
+      <div class="user-info">
+        <img id="user-avatar" src="" alt="Foto de perfil" />
+        <span id="user-name"></span>
+      </div>
+      <button id="logout-btn">⎋</button>
+    </header>
+    <div id="messages"></div>
+    <div class="input-area">
+      <input type="text" id="message-input" placeholder="Digite uma mensagem" />
+      <button id="send-btn">➤</button>
+    </div>
   </div>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <script>
+    // Configuração Firebase atualizada
     const firebaseConfig = {
       apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
       authDomain: "chat-on-1-4f38f.firebaseapp.com",
@@ -74,83 +50,187 @@
       projectId: "chat-on-1-4f38f",
       storageBucket: "chat-on-1-4f38f.appspot.com",
       messagingSenderId: "499742357573",
-      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c"
+      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
+      measurementId: "G-BMZW4Q4PDJ"
     };
 
+    // Inicializa Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage();
+    const messagesRef = db.ref("messages");
 
-    const emailInput = document.getElementById("email");
-    const senhaInput = document.getElementById("senha");
-    const entrarBtn = document.getElementById("entrarBtn");
-    const sairBtn = document.getElementById("sairBtn");
-    const enviarBtn = document.getElementById("enviarBtn");
-    const mensagemInput = document.getElementById("mensagem");
-    const mensagens = document.getElementById("mensagens");
-    const loginContainer = document.getElementById("login-container");
-    const chatContainer = document.getElementById("chat-container");
+    // Elementos DOM
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const chatScreen = document.getElementById('chat-screen');
+    const loginScreen = document.getElementById('login-screen');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const avatarInput = document.getElementById('avatar-input');
+    const userAvatar = document.getElementById('user-avatar');
+    const userNameDisplay = document.getElementById('user-name');
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const errorMessage = document.getElementById('error-message');
 
-    entrarBtn.onclick = async () => {
+    let currentUser = null;
+    let messagesListener = null;
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      chatScreen.style.display = 'none';
+    }
+
+    function showChat() {
+      loginScreen.style.display = 'none';
+      chatScreen.style.display = 'flex';
+      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
+      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+    }
+
+    async function uploadAvatar(uid, file) {
+      const avatarRef = storage.ref().child(`avatars/${uid}.jpg`);
+      await avatarRef.put(file);
+      return await avatarRef.getDownloadURL();
+    }
+
+    loginBtn.onclick = async () => {
+      errorMessage.textContent = '';
       const email = emailInput.value.trim();
-      const password = senhaInput.value.trim();
+      const password = passwordInput.value;
+      const avatarFile = avatarInput.files[0];
 
       if (!email || !password) {
-        alert('Por favor, preencha todos os campos.');
+        errorMessage.textContent = 'Email e senha são obrigatórios';
         return;
       }
 
       try {
-        await auth.signInWithEmailAndPassword(email, password);
-      } catch (error) {
-        if (error.code === 'auth/user-not-found') {
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = cred.user;
+        if (!currentUser.photoURL && avatarFile) {
+          const url = await uploadAvatar(currentUser.uid, avatarFile);
+          await currentUser.updateProfile({ photoURL: url });
+        }
+        showChat();
+      } catch (e) {
+        if (e.code === 'auth/user-not-found') {
           try {
-            await auth.createUserWithEmailAndPassword(email, password);
-            alert('Conta criada com sucesso!');
-          } catch (createError) {
-            alert('Erro ao criar conta: ' + createError.message);
+            const cred = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = cred.user;
+            const displayName = email.split('@')[0];
+            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+            if (avatarFile) photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            await currentUser.updateProfile({ displayName, photoURL });
+            showChat();
+          } catch (regErr) {
+            errorMessage.textContent = regErr.message;
           }
         } else {
-          alert('Erro no login: ' + error.message);
+          errorMessage.textContent = e.message;
         }
       }
     };
 
-    sairBtn.onclick = () => {
-      auth.signOut();
-    };
+    function renderMessage(key, msg) {
+      if (!msg.text || !msg.name) return;
+      const isSent = currentUser && msg.uid === currentUser.uid;
+      const div = document.createElement('div');
+      div.className = 'msg ' + (isSent ? 'sent' : 'received');
 
-    enviarBtn.onclick = () => {
-      const mensagem = mensagemInput.value;
-      if (mensagem.trim() !== "") {
-        db.ref("mensagens").push({
-          texto: mensagem,
-          usuario: auth.currentUser.email,
-          timestamp: Date.now()
-        });
-        mensagemInput.value = "";
+      const header = document.createElement('div');
+      header.className = 'msg-header';
+
+      const img = document.createElement('img');
+      img.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
+
+      const name = document.createElement('span');
+      name.textContent = msg.name;
+
+      const time = document.createElement('span');
+      const d = new Date(msg.time);
+      time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      header.appendChild(img);
+      header.appendChild(name);
+      header.appendChild(time);
+
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.textContent = msg.text;
+
+      div.appendChild(header);
+      div.appendChild(text);
+      messagesContainer.appendChild(div);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function startListeningMessages() {
+      messagesContainer.innerHTML = '';
+      if (messagesListener) {
+        messagesRef.off('child_added', messagesListener);
       }
-    };
+      messagesListener = messagesRef.on('child_added', snap => renderMessage(snap.key, snap.val()));
+    }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginContainer.style.display = "none";
-        chatContainer.style.display = "block";
-        mensagens.innerHTML = "";
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || !currentUser) return;
+      const msg = {
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email,
+        avatar: currentUser.photoURL || '',
+        text,
+        time: Date.now()
+      };
+      messagesRef.push(msg);
+      messageInput.value = '';
+    }
 
-        db.ref("mensagens").on("child_added", snap => {
-          const msg = snap.val();
-          const div = document.createElement("div");
-          div.className = "message";
-          div.textContent = msg.usuario + ": " + msg.texto;
-          mensagens.appendChild(div);
-          mensagens.scrollTop = mensagens.scrollHeight;
-        });
-      } else {
-        loginContainer.style.display = "block";
-        chatContainer.style.display = "none";
+    sendBtn.onclick = sendMessage;
+
+    messageInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // evita comportamento inesperado
+        sendMessage();
       }
     });
+
+    logoutBtn.onclick = async () => {
+      if (confirm('Deseja sair do chat?')) {
+        await auth.signOut();
+        currentUser = null;
+        messagesContainer.innerHTML = '';
+        if (messagesListener) {
+          messagesRef.off('child_added', messagesListener);
+          messagesListener = null;
+        }
+        showLogin();
+      }
+    };
+
+    // Verifica se o usuário já está logado
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        showChat();
+        startListeningMessages();
+      } else {
+        currentUser = null;
+        showLogin();
+      }
+    });
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('✅ Service Worker registrado!'))
+        .catch(err => console.error('Erro no Service Worker:', err));
+    }
   </script>
 </body>
 </html>
