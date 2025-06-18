@@ -19,11 +19,14 @@
       font-family: Arial, sans-serif;
     }
     #login-screen, #chat-screen {
-      display: none;
+      display: none; /* escondidas por padrão */
       flex-direction: column;
       align-items: center;
       padding: 20px;
       height: 100vh;
+    }
+    #login-screen.active, #chat-screen.active {
+      display: flex;
     }
     #login-screen {
       justify-content: center;
@@ -153,7 +156,7 @@
   </style>
 </head>
 <body>
-  <div id="login-screen">
+  <div id="login-screen" class="active">
     <h2>Entre no Chat</h2>
     <div id="error-message"></div>
     <input type="email" id="email-input" placeholder="Email" autocomplete="username" />
@@ -214,8 +217,8 @@
     let messagesListener = null;
 
     function showLogin() {
-      loginScreen.style.display = 'flex';
-      chatScreen.style.display = 'none';
+      loginScreen.classList.add('active');
+      chatScreen.classList.remove('active');
       errorMessage.textContent = '';
       emailInput.value = '';
       passwordInput.value = '';
@@ -223,8 +226,8 @@
     }
 
     function showChat() {
-      loginScreen.style.display = 'none';
-      chatScreen.style.display = 'flex';
+      loginScreen.classList.remove('active');
+      chatScreen.classList.add('active');
       userNameDisplay.textContent = currentUser.displayName || currentUser.email;
       userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
       messageInput.focus();
@@ -252,7 +255,6 @@
         const cred = await auth.signInWithEmailAndPassword(email, password);
         currentUser = cred.user;
 
-        // Se não tem foto, e selecionou arquivo, faz upload
         if (!currentUser.photoURL && avatarFile) {
           const url = await uploadAvatar(currentUser.uid, avatarFile);
           await currentUser.updateProfile({ photoURL: url });
@@ -261,7 +263,6 @@
         showChat();
       } catch (e) {
         if (e.code === 'auth/user-not-found') {
-          // Cria usuário
           try {
             const cred = await auth.createUserWithEmailAndPassword(email, password);
             currentUser = cred.user;
@@ -374,6 +375,7 @@
         startListening();
       } else {
         currentUser = null;
+        stopListening();
         showLogin();
       }
     });
@@ -388,5 +390,4 @@
     }
   </script>
 </body>
-  </html>
-  
+</html>
