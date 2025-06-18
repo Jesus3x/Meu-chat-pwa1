@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat Firebase</title>
+  <title>Chat Firebase - Login com Email/Senha e Foto</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#075e54" />
 
@@ -133,7 +133,6 @@
     <input type="file" id="avatar-input" accept="image/*" />
     <button id="login-btn">Entrar / Registrar</button>
   </div>
-
   <div id="chat-screen">
     <header>
       <div class="user-info">
@@ -148,16 +147,16 @@
       <button id="send-btn">➤</button>
     </div>
   </div>
-
   <script>
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_DOMINIO.firebaseapp.com",
-      databaseURL: "https://SEU_DOMINIO-default-rtdb.firebaseio.com",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_BUCKET.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
+      apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+      authDomain: "chat-on-1-4f38f.firebaseapp.com",
+      databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
+      projectId: "chat-on-1-4f38f",
+      storageBucket: "chat-on-1-4f38f.appspot.com",
+      messagingSenderId: "499742357573",
+      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
+      measurementId: "G-BMZW4Q4PDJ"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -181,6 +180,7 @@
     const errorMessage = document.getElementById('error-message');
 
     let currentUser = null;
+    let messagesListener = null;
 
     function showLogin() {
       loginScreen.style.display = 'flex';
@@ -226,7 +226,9 @@
             currentUser = cred.user;
             const displayName = email.split('@')[0];
             let photoURL = 'https://i.imgur.com/xx7JfUD.png';
-            if (avatarFile) photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            if (avatarFile) {
+              photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            }
             await currentUser.updateProfile({ displayName, photoURL });
             showChat();
           } catch (regErr) {
@@ -271,9 +273,11 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function startListening() {
+    function startListeningMessages() {
       messagesContainer.innerHTML = '';
-      messagesRef.on('child_added', snap => renderMessage(snap.key, snap.val()));
+      messagesListener = messagesRef.on('child_added', snap => {
+        renderMessage(snap.key, snap.val());
+      });
     }
 
     function sendMessage() {
@@ -296,11 +300,15 @@
         await auth.signOut();
         currentUser = null;
         messagesContainer.innerHTML = '';
+        if (messagesListener) {
+          messagesRef.off('child_added', messagesListener);
+          messagesListener = null;
+        }
         showLogin();
       }
     };
 
-    // Enviar mensagem com Enter ou botão
+    // Eventos para enviar mensagem com Enter e clique
     sendBtn.onclick = sendMessage;
     messageInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
@@ -309,12 +317,12 @@
       }
     });
 
-    // Verifica se o usuário já está logado
+    // Observa mudanças na autenticação
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
         showChat();
-        startListening(); // <- Corrigido!
+        startListeningMessages();
       } else {
         currentUser = null;
         showLogin();
@@ -322,7 +330,6 @@
     });
   </script>
 
-  <!-- Service Worker PWA -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
@@ -331,5 +338,4 @@
     }
   </script>
 </body>
-    </html>
-  
+</html>
