@@ -1,12 +1,3 @@
-from zipfile import ZipFile
-from pathlib import Path
-
-# Recriar estrutura após reset
-project_dir = Path("/mnt/data/chat_pwa_firebase")
-project_dir.mkdir(exist_ok=True)
-
-# Conteúdo dos arquivos
-index_html = """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -15,37 +6,95 @@ index_html = """
   <title>Meu Chat PWA</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#075e54" />
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <link rel="icon" href="icon-192x192.png" />
   <style>
-    body { font-family: sans-serif; margin: 0; background: #ece5dd; }
-    #login-screen, #chat-screen { display: none; padding: 20px; }
-    #login-screen { display: flex; flex-direction: column; align-items: center; }
-    input, button { margin: 5px; padding: 10px; }
-    #chat-screen { display: flex; flex-direction: column; height: 100vh; }
-    #messages { flex: 1; overflow-y: auto; padding: 10px; }
-    .sent { background: #dcf8c6; text-align: right; }
-    .received { background: #fff; }
-    .message { padding: 10px; border-radius: 5px; margin: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #login, #chat {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #ece5dd;
+      padding: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #25d366;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .header {
+      background-color: #075e54;
+      color: white;
+      padding: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .messages {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .message {
+      background: #dcf8c6;
+      padding: 10px;
+      margin: 5px;
+      border-radius: 10px;
+      max-width: 60%;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      width: 100%;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
-  <div id="login-screen">
-    <h2>Entrar no Chat</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Senha" />
-    <input type="file" id="avatar" accept="image/*" />
-    <button id="loginBtn">Entrar / Registrar</button>
-    <div id="error" style="color:red;"></div>
+
+<div id="login">
+  <h2>Entrar no Chat</h2>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="senha" placeholder="Senha" />
+  <input type="file" id="avatar" accept="image/*" />
+  <button id="entrarBtn">Entrar / Registrar</button>
+</div>
+
+<div id="chat">
+  <div class="header">
+    <span id="userName">Usuário</span>
+    <button id="sairBtn">Sair</button>
   </div>
-  <div id="chat-screen">
-    <button id="logoutBtn">Sair</button>
-    <div id="messages"></div>
-    <input type="text" id="message" placeholder="Digite sua mensagem" />
-    <button id="sendBtn">Enviar</button>
+  <div class="messages" id="mensagens"></div>
+  <div class="input-area">
+    <input type="text" id="mensagemInput" placeholder="Digite sua mensagem..." />
+    <button id="enviarBtn">➤</button>
   </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
@@ -54,169 +103,92 @@ index_html = """
     projectId: "chat-on-1-4f38f",
     storageBucket: "chat-on-1-4f38f.appspot.com",
     messagingSenderId: "499742357573",
-    appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c"
+    appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
+    measurementId: "G-BMZW4Q4PDJ"
   };
+
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
   const storage = firebase.storage();
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-  const avatarInput = document.getElementById("avatar");
-  const loginBtn = document.getElementById("loginBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const messageInput = document.getElementById("message");
-  const sendBtn = document.getElementById("sendBtn");
-  const messagesDiv = document.getElementById("messages");
-  const loginScreen = document.getElementById("login-screen");
-  const chatScreen = document.getElementById("chat-screen");
-  const errorDiv = document.getElementById("error");
 
-  let currentUser = null;
+  const login = document.getElementById("login");
+  const chat = document.getElementById("chat");
+  const entrarBtn = document.getElementById("entrarBtn");
+  const sairBtn = document.getElementById("sairBtn");
+  const enviarBtn = document.getElementById("enviarBtn");
+  const mensagens = document.getElementById("mensagens");
+  const userName = document.getElementById("userName");
 
-  function showChat() {
-    loginScreen.style.display = "none";
-    chatScreen.style.display = "flex";
-  }
+  const email = document.getElementById("email");
+  const senha = document.getElementById("senha");
+  const avatar = document.getElementById("avatar");
+  const mensagemInput = document.getElementById("mensagemInput");
 
-  function showLogin() {
-    chatScreen.style.display = "none";
-    loginScreen.style.display = "flex";
-  }
+  entrarBtn.onclick = async () => {
+    if (!email.value || !senha.value) return alert("Preencha todos os campos!");
 
-  loginBtn.onclick = async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    const avatar = avatarInput.files[0];
-    if (!email || !password) {
-      errorDiv.textContent = "Preencha email e senha.";
-      return;
-    }
     try {
-      const cred = await auth.signInWithEmailAndPassword(email, password);
-      currentUser = cred.user;
-      showChat();
-    } catch (err) {
-      if (err.code === "auth/user-not-found") {
-        try {
-          const cred = await auth.createUserWithEmailAndPassword(email, password);
-          currentUser = cred.user;
-          let photoURL = "https://i.imgur.com/xx7JfUD.png";
-          if (avatar) {
-            const ref = storage.ref("avatars/" + currentUser.uid);
-            await ref.put(avatar);
-            photoURL = await ref.getDownloadURL();
-          }
-          await currentUser.updateProfile({ displayName: email.split('@')[0], photoURL });
-          showChat();
-        } catch (e) {
-          errorDiv.textContent = "Erro ao criar: " + e.message;
+      await auth.signInWithEmailAndPassword(email.value, senha.value);
+    } catch (e) {
+      if (e.code === "auth/user-not-found") {
+        const cred = await auth.createUserWithEmailAndPassword(email.value, senha.value);
+        const displayName = email.value.split("@")[0];
+        let photoURL = "";
+        if (avatar.files[0]) {
+          const avatarRef = storage.ref().child(`avatars/${cred.user.uid}.jpg`);
+          await avatarRef.put(avatar.files[0]);
+          photoURL = await avatarRef.getDownloadURL();
         }
+        await cred.user.updateProfile({ displayName, photoURL });
       } else {
-        errorDiv.textContent = "Erro no login: " + err.message;
+        alert("Erro no login: " + e.message);
       }
     }
   };
 
-  logoutBtn.onclick = () => {
-    auth.signOut();
-    showLogin();
-  };
-
-  sendBtn.onclick = () => {
-    const msg = messageInput.value.trim();
-    if (msg && currentUser) {
-      db.ref("messages").push({
-        uid: currentUser.uid,
-        name: currentUser.displayName,
-        avatar: currentUser.photoURL,
-        text: msg,
-        time: Date.now()
-      });
-      messageInput.value = "";
-    }
-  };
-
-  db.ref("messages").on("child_added", snap => {
-    const m = snap.val();
-    const div = document.createElement("div");
-    div.className = "message " + (m.uid === (currentUser && currentUser.uid) ? "sent" : "received");
-    div.innerHTML = `<strong>${m.name}:</strong> ${m.text}`;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
-
   auth.onAuthStateChanged(user => {
     if (user) {
-      currentUser = user;
-      showChat();
+      login.style.display = "none";
+      chat.style.display = "flex";
+      userName.textContent = user.displayName || user.email;
+
+      db.ref("mensagens").on("child_added", snap => {
+        const msg = snap.val();
+        const div = document.createElement("div");
+        div.className = "message";
+        div.textContent = `${msg.usuario}: ${msg.texto}`;
+        mensagens.appendChild(div);
+        mensagens.scrollTop = mensagens.scrollHeight;
+      });
     } else {
-      showLogin();
+      login.style.display = "flex";
+      chat.style.display = "none";
     }
   });
-</script>
-<script>
+
+  sairBtn.onclick = () => {
+    auth.signOut();
+  };
+
+  enviarBtn.onclick = () => {
+    const texto = mensagemInput.value;
+    if (texto.trim()) {
+      db.ref("mensagens").push({
+        texto,
+        usuario: auth.currentUser.displayName || auth.currentUser.email,
+        timestamp: Date.now()
+      });
+      mensagemInput.value = "";
+    }
+  };
+
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('✅ Service Worker registrado'))
+      .catch(err => console.error('Erro ao registrar SW', err));
   }
 </script>
+
 </body>
 </html>
-"""
-
-manifest_json = """
-{
-  "name": "Meu Chat PWA",
-  "short_name": "ChatPWA",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#075e54",
-  "theme_color": "#075e54",
-  "icons": [
-    {
-      "src": "icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}
-"""
-
-service_worker = """
-const CACHE_NAME = "chat-pwa-cache-v1";
-const urlsToCache = ["/", "/index.html", "/manifest.json"];
-
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
-});
-"""
-
-# Criar arquivos
-(project_dir / "index.html").write_text(index_html, encoding="utf-8")
-(project_dir / "manifest.json").write_text(manifest_json, encoding="utf-8")
-(project_dir / "service-worker.js").write_text(service_worker, encoding="utf-8")
-
-# Criar ícones de exemplo
-for size in [192, 512]:
-    (project_dir / f"icon-{size}x{size}.png").write_bytes(b"\x89PNG\r\n\x1a\n")
-
-# Gerar ZIP
-zip_path = Path("/mnt/data/chat_pwa_firebase.zip")
-with ZipFile(zip_path, "w") as zipf:
-    for file in project_dir.rglob("*"):
-        zipf.write(file, arcname=file.relative_to(project_dir))
-
-zip_path
