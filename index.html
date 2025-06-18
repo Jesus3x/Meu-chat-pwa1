@@ -67,12 +67,15 @@
       width: 100%;
       overflow-y: auto;
       padding: 10px;
+      display: flex;
+      flex-direction: column;
     }
     .msg {
       margin: 10px;
       padding: 10px;
       border-radius: 10px;
       max-width: 60%;
+      word-wrap: break-word;
     }
     .sent {
       background: #dcf8c6;
@@ -87,6 +90,7 @@
       align-items: center;
       gap: 5px;
       font-size: 0.85em;
+      margin-bottom: 4px;
     }
     .msg-header img {
       width: 24px;
@@ -125,7 +129,9 @@
   </style>
 </head>
 <body>
-  <div id="login-screen">
+
+  <!-- Tela de Login -->
+  <div id="login-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
     <h2>Entre no Chat</h2>
     <div id="error-message"></div>
     <input type="email" id="email-input" placeholder="Email" />
@@ -133,21 +139,27 @@
     <input type="file" id="avatar-input" accept="image/*" />
     <button id="login-btn">Entrar / Registrar</button>
   </div>
-  <div id="chat-screen">
+
+  <!-- Tela do Chat -->
+  <div id="chat-screen" style="display:none; flex-direction: column; height: 100vh;">
     <header>
       <div class="user-info">
-        <img id="user-avatar" src="" alt="Foto de perfil" />
+        <img id="user-avatar" src="https://i.imgur.com/xx7JfUD.png" alt="Foto de perfil" />
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn">⎋</button>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
     </header>
+
     <div id="messages"></div>
+
     <div class="input-area">
-      <input type="text" id="message-input" placeholder="Digite uma mensagem" />
+      <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
       <button id="send-btn">➤</button>
     </div>
   </div>
+
   <script>
+    // Configuração Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
       authDomain: "chat-on-1-4f38f.firebaseapp.com",
@@ -159,15 +171,17 @@
       measurementId: "G-BMZW4Q4PDJ"
     };
     firebase.initializeApp(firebaseConfig);
+
     const auth = firebase.auth();
     const db = firebase.database();
     const storage = firebase.storage();
     const messagesRef = db.ref("messages");
 
+    // Elementos UI
+    const loginScreen = document.getElementById('login-screen');
+    const chatScreen = document.getElementById('chat-screen');
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const chatScreen = document.getElementById('chat-screen');
-    const loginScreen = document.getElementById('login-screen');
     const emailInput = document.getElementById('email-input');
     const passwordInput = document.getElementById('password-input');
     const avatarInput = document.getElementById('avatar-input');
@@ -179,65 +193,38 @@
     const errorMessage = document.getElementById('error-message');
 
     let currentUser = null;
+    let messagesListener = null;
 
+    // Exibe tela de login
     function showLogin() {
       loginScreen.style.display = 'flex';
       chatScreen.style.display = 'none';
+      errorMessage.textContent = '';
+      emailInput.value = '';
+      passwordInput.value = '';
+      avatarInput.value = '';
     }
 
+    // Exibe tela de chat e atualiza dados do usuário
     function showChat() {
       loginScreen.style.display = 'none';
       chatScreen.style.display = 'flex';
       userNameDisplay.textContent = currentUser.displayName || currentUser.email;
       userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+      messageInput.focus();
     }
 
+    // Upload avatar para Storage Firebase
     async function uploadAvatar(uid, file) {
       const avatarRef = storage.ref().child(`avatars/${uid}.jpg`);
       await avatarRef.put(file);
       return await avatarRef.getDownloadURL();
     }
 
-    loginBtn.onclick = async () => {
-      errorMessage.textContent = '';
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-      const avatarFile = avatarInput.files[0];
-
-      if (!email || !password) {
-        errorMessage.textContent = 'Email e senha são obrigatórios';
-        return;
-      }
-
-      try {
-        const cred = await auth.signInWithEmailAndPassword(email, password);
-        currentUser = cred.user;
-        if (!currentUser.photoURL && avatarFile) {
-          const url = await uploadAvatar(currentUser.uid, avatarFile);
-          await currentUser.updateProfile({ photoURL: url });
-        }
-        showChat();
-      } catch (e) {
-        if (e.code === 'auth/user-not-found') {
-          try {
-            const cred = await auth.createUserWithEmailAndPassword(email, password);
-            currentUser = cred.user;
-            const displayName = email.split('@')[0];
-            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
-            if (avatarFile) photoURL = await uploadAvatar(currentUser.uid, avatarFile);
-            await currentUser.updateProfile({ displayName, photoURL });
-            showChat();
-          } catch (regErr) {
-            errorMessage.textContent = regErr.message;
-          }
-        } else {
-          errorMessage.textContent = e.message;
-        }
-      }
-    };
-
-    function renderMessage(key, msg) {
+    // Renderiza uma mensagem no chat
+    function renderMessage(msg) {
       if (!msg.text || !msg.name) return;
+
       const isSent = currentUser && msg.uid === currentUser.uid;
       const div = document.createElement('div');
       div.className = 'msg ' + (isSent ? 'sent' : 'received');
@@ -265,15 +252,23 @@
 
       div.appendChild(header);
       div.appendChild(text);
+
       messagesContainer.appendChild(div);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function startListening() {
+    // Começa a escutar mensagens novas no Realtime Database
+    function startListeningMessages() {
       messagesContainer.innerHTML = '';
-      messagesRef.on('child_added', snap => renderMessage(snap.key, snap.val()));
+      if (messagesListener) {
+        messagesRef.off('child_added', messagesListener);
+      }
+      messagesListener = messagesRef.on('child_added', snap => {
+        renderMessage(snap.val());
+      });
     }
 
+    // Envia mensagem para o banco
     function sendMessage() {
       const text = messageInput.value.trim();
       if (!text || !currentUser) return;
@@ -288,31 +283,101 @@
       messageInput.value = '';
     }
 
-    sendBtn.onclick = sendMessage;
-    messageInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') sendMessage();
-    });
+    // Login / Registro
+    loginBtn.onclick = async () => {
+      errorMessage.textContent = '';
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const avatarFile = avatarInput.files[0];
 
-    logoutBtn.onclick = async () => {
-      await auth.signOut();
-      currentUser = null;
-      showLogin();
+      if (!email || !password) {
+        errorMessage.textContent = 'Email e senha são obrigatórios';
+        return;
+      }
+
+      try {
+        // Tenta login
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = cred.user;
+
+        // Se não tiver foto e avatar foi enviado, atualiza foto
+        if (!currentUser.photoURL && avatarFile) {
+          const url = await uploadAvatar(currentUser.uid, avatarFile);
+          await currentUser.updateProfile({ photoURL: url });
+          currentUser = auth.currentUser; // Atualiza localmente
+        }
+
+        showChat();
+        startListeningMessages();
+
+      } catch (e) {
+        if (e.code === 'auth/user-not-found') {
+          // Usuário não existe, cria
+          try {
+            const cred = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = cred.user;
+            const displayName = email.split('@')[0];
+            let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+            if (avatarFile) photoURL = await uploadAvatar(currentUser.uid, avatarFile);
+            await currentUser.updateProfile({ displayName, photoURL });
+            currentUser = auth.currentUser;
+            showChat();
+            startListeningMessages();
+          } catch (regErr) {
+            errorMessage.textContent = regErr.message;
+          }
+        } else {
+          errorMessage.textContent = e.message;
+        }
+      }
     };
 
+    // Logout
+    logoutBtn.onclick = async () => {
+      if (confirm('Deseja sair do chat?')) {
+        await auth.signOut();
+        currentUser = null;
+        messagesContainer.innerHTML = '';
+        if (messagesListener) {
+          messagesRef.off('child_added', messagesListener);
+          messagesListener = null;
+        }
+        showLogin();
+      }
+    };
+
+    // Eventos para enviar mensagem com Enter e clique
+    sendBtn.onclick = sendMessage;
+    messageInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Observa mudanças na autenticação para exibir tela correta
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
         showChat();
-        startListening();
+        startListeningMessages();
+      } else {
+        currentUser = null;
+        showLogin();
       }
     });
+
   </script>
+
   <script>
+    // Service worker para PWA
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(() => console.log('✅ Service Worker registrado!'))
         .catch(err => console.error('Erro no Service Worker:', err));
     }
   </script>
+
 </body>
-</html>
+  </html>
+  
