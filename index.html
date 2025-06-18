@@ -1,23 +1,43 @@
-entrarBtn.onclick = async () => {
+loginBtn.onclick = async () => {
+  errorMessage.textContent = '';
   const email = emailInput.value.trim();
-  const senha = senhaInput.value.trim();
+  const password = passwordInput.value;
+  const avatarFile = avatarInput.files[0];
 
-  console.log('[DEBUG] Tentando login:', email);
+  if (!email || !password) {
+    errorMessage.textContent = 'Email e senha são obrigatórios';
+    return;
+  }
+
   try {
-    const cred = await auth.signInWithEmailAndPassword(email, senha);
-    console.log('[DEBUG] Login realizado:', cred.user.uid);
-  } catch (err) {
-    console.warn('[DEBUG] Falhou login:', err.code, err.message);
-    if (err.code === 'auth/user-not-found') {
-      console.log('[DEBUG] Tentando criar usuário:', email);
+    // Tenta fazer login
+    const cred = await auth.signInWithEmailAndPassword(email, password);
+    currentUser = cred.user;
+    showChat();
+    startListening();
+  } catch (loginError) {
+    if (loginError.code === 'auth/user-not-found') {
       try {
-        const cred2 = await auth.createUserWithEmailAndPassword(email, senha);
-        console.log('[DEBUG] Conta criada com sucesso:', cred2.user.uid);
-      } catch (e) {
-        console.error('[DEBUG] Erro ao criar conta:', e.code, e.message);
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        currentUser = cred.user;
+
+        const displayName = email.split('@')[0];
+        let photoURL = 'https://i.imgur.com/xx7JfUD.png';
+
+        if (avatarFile) {
+          const avatarRef = storage.ref().child(`avatars/${currentUser.uid}.jpg`);
+          await avatarRef.put(avatarFile);
+          photoURL = await avatarRef.getDownloadURL();
+        }
+
+        await currentUser.updateProfile({ displayName, photoURL });
+        showChat();
+        startListening();
+      } catch (createError) {
+        errorMessage.textContent = 'Erro ao criar usuário: ' + createError.message;
       }
     } else {
-      console.error('[DEBUG] Outro erro de login:', err.code, err.message);
+      errorMessage.textContent = 'Erro no login: ' + loginError.message;
     }
   }
 };
