@@ -84,28 +84,34 @@
   const mensagens = document.getElementById('mensagens');
 
   entrarBtn.onclick = () => {
-    const email = emailInput.value;
-    const senha = senhaInput.value;
+  loginBtn.onclick = async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
 
-    auth.signInWithEmailAndPassword(email, senha)
-      .then(() => {
-        console.log("Login efetuado");
-      })
-      .catch(error => {
-        if (error.code === "auth/user-not-found") {
-          // Se usuário não existe, cria automaticamente
-          auth.createUserWithEmailAndPassword(email, senha)
-            .then(() => {
-              console.log("Usuário criado e logado");
-            })
-            .catch(err => alert("Erro ao criar conta: " + err.message));
-        } else {
-          alert("Erro: " + error.message);
-        }
-      });
-  };
+  if (!email || !password) {
+    alert('Por favor, preencha todos os campos.');
+    return;
+  }
 
-  sairBtn.onclick = () => {
+  try {
+    // Tenta fazer login
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (error) {
+    // Se não conseguir, tenta criar conta
+    if (error.code === 'auth/user-not-found') {
+      try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        alert('Conta criada com sucesso!');
+      } catch (createError) {
+        alert('Erro ao criar conta: ' + createError.message);
+      }
+    } else {
+      alert('Erro no login: ' + error.message);
+    }
+  }
+};
+  
+ sairBtn.onclick = () => {
     auth.signOut();
   };
 
