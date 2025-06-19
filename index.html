@@ -109,16 +109,58 @@
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 6px;
+      min-width: 0;
     }
     .input-area button {
-      padding: 10px 20px;
+      padding: 10px 15px;
       font-size: 16px;
       background: #25d366;
       border: none;
       border-radius: 6px;
       color: white;
       cursor: pointer;
+      flex-shrink: 0;
+      min-width: 40px;
     }
+
+    /* Estilo botão áudio tipo WhatsApp */
+    #audio-btn {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      color: #075e54;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #audio-btn:hover,
+    #audio-btn:focus {
+      background-color: #25d366;
+      color: white;
+      outline: none;
+      box-shadow: 0 0 8px #25d366;
+    }
+    #audio-btn.recording {
+      background-color: #d93025;
+      color: white;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 5px #d93025;
+      }
+      50% {
+        box-shadow: 0 0 15px #d93025;
+      }
+      100% {
+        box-shadow: 0 0 5px #d93025;
+      }
+    }
+
     #error-message {
       color: red;
       margin-bottom: 10px;
@@ -146,7 +188,7 @@
     <div class="input-area">
       <input type="text" id="message-input" placeholder="Digite uma mensagem" />
       <button id="send-btn">➤</button>
-      <button id="audio-btn">🎙️</button>
+      <button id="audio-btn" title="Gravar áudio">🎙️</button>
     </div>
   </div>
   <script>
@@ -310,6 +352,83 @@
       messageInput.value = '';
     }
 
+    // Função para iniciar a gravação de áudio
+    async function startAudioRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Este navegador não suporta gravação de áudio.');
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        audioChunks = [];
+
+        audioBtn.classList.add('recording');
+        audioBtn.title = "Gravando... Clique para parar";
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+        mediaRecorder.onstop = async () => {
+          audioBtn.classList.remove('recording');
+          audioBtn.title = "Gravar áudio";
+
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`);
+
+          const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
+          await audioRef.put(audioFile);
+          const audioURL = await audioRef.getDownloadURL();
+
+          const msg = {
+            uid: currentUser.uid,
+            name: currentUser.displayName || currentUser.email,
+            avatar: currentUser.photoURL || '',
+            audio: audioURL,
+            time: Date.now()
+          };
+
+          messagesRef.push(msg);
+        };
+
+        // Permite parar a gravação ao clicar novamente no botão
+        audioBtn.onclick = () => {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+          audioBtn.classList.remove('recording');
+          audioBtn.title = "Gravar áudio";
+          audioBtn.onclick = startAudioRecording;
+        };
+
+        // Para gravação automática após 30 segundos
+        setTimeout(() => {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            audioBtn.classList.remove('recording');
+            audioBtn.title = "Gravar áudio";
+            audioBtn.onclick = startAudioRecording;
+          }
+        }, 30000);
+
+      } catch (error) {
+        alert('Erro ao acessar o microfone: ' + error.message);
+      }
+    }
+
+    // Eventos
+    loginBtn.onclick = loginBtn.onclick; // mantém login registrado
+    sendBtn.onclick = sendMessage;
+    messageInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    audioBtn.onclick = startAudioRecording;
+
     // Logout
     logoutBtn.onclick = async () => {
       if (confirm('Deseja sair do chat?')) {
@@ -322,56 +441,6 @@
         }
         showLogin();
       }
-    };
-
-    // Eventos para enviar mensagem com Enter e clique
-    sendBtn.onclick = sendMessage;
-    messageInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Gravação de áudio
-    audioBtn.onclick = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Este navegador não suporta gravação de áudio.');
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.start();
-      audioChunks = [];
-
-      alert('🎙️ Gravando áudio (até 30 segundos). Fale agora.');
-
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`);
-
-        const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
-        await audioRef.put(audioFile);
-        const audioURL = await audioRef.getDownloadURL();
-
-        const msg = {
-          uid: currentUser.uid,
-          name: currentUser.displayName || currentUser.email,
-          avatar: currentUser.photoURL || '',
-          audio: audioURL,
-          time: Date.now()
-        };
-
-        messagesRef.push(msg);
-      };
-
-      setTimeout(() => {
-        mediaRecorder.stop();
-      }, 30000); // Grava por 30 segundos
     };
 
     // Observa mudanças na autenticação
