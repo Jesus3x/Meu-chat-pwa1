@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat Firebase - Login com Email/Senha e Foto</title>
+  <title>Chat Firebase - Login com Email/Senha e Foto + Áudio</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#075e54" />
 
@@ -73,6 +73,8 @@
       padding: 10px;
       border-radius: 10px;
       max-width: 60%;
+      display: flex;
+      flex-direction: column;
     }
     .sent {
       background: #dcf8c6;
@@ -95,6 +97,8 @@
     }
     .msg .text {
       margin-top: 2px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
     .input-area {
       display: flex;
@@ -102,68 +106,38 @@
       padding: 10px;
       background: #f0f0f0;
       gap: 5px;
+      align-items: center;
     }
-    .input-area input {
+    .input-area input[type="text"] {
       flex: 1;
       padding: 10px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      min-width: 0;
     }
     .input-area button {
       padding: 10px 15px;
-      font-size: 16px;
+      font-size: 18px;
       background: #25d366;
       border: none;
       border-radius: 6px;
       color: white;
       cursor: pointer;
-      flex-shrink: 0;
-      min-width: 40px;
-    }
-
-    /* Estilo botão áudio tipo WhatsApp */
-    #audio-btn {
-      background: transparent;
-      border: none;
-      font-size: 24px;
-      color: #075e54;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #audio-btn:hover,
-    #audio-btn:focus {
-      background-color: #25d366;
-      color: white;
-      outline: none;
-      box-shadow: 0 0 8px #25d366;
+      user-select: none;
     }
     #audio-btn.recording {
-      background-color: #d93025;
-      color: white;
+      background-color: #cc3333 !important;
       animation: pulse 1s infinite;
     }
     @keyframes pulse {
-      0% {
-        box-shadow: 0 0 5px #d93025;
-      }
-      50% {
-        box-shadow: 0 0 15px #d93025;
-      }
-      100% {
-        box-shadow: 0 0 5px #d93025;
-      }
+      0% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(204, 51, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0); }
     }
-
     #error-message {
       color: red;
       margin-bottom: 10px;
+      min-height: 18px;
     }
   </style>
 </head>
@@ -182,13 +156,13 @@
         <img id="user-avatar" src="" alt="Foto de perfil" />
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn">⎋</button>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
     </header>
     <div id="messages"></div>
     <div class="input-area">
       <input type="text" id="message-input" placeholder="Digite uma mensagem" />
-      <button id="send-btn">➤</button>
       <button id="audio-btn" title="Gravar áudio">🎙️</button>
+      <button id="send-btn" title="Enviar mensagem">➤</button>
     </div>
   </div>
   <script>
@@ -226,7 +200,7 @@
 
     let currentUser = null;
     let messagesListener = null;
-    let mediaRecorder;
+    let mediaRecorder = null;
     let audioChunks = [];
 
     function showLogin() {
@@ -239,6 +213,7 @@
       chatScreen.style.display = 'flex';
       userNameDisplay.textContent = currentUser.displayName || currentUser.email;
       userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+      messageInput.focus();
     }
 
     async function uploadAvatar(uid, file) {
@@ -288,7 +263,7 @@
     };
 
     function renderMessage(key, msg) {
-      if (!msg.text && !msg.audio) return; // aceita mensagem texto ou áudio, pelo menos um
+      if (!msg.text && !msg.audio) return;
 
       const isSent = currentUser && msg.uid === currentUser.uid;
       const div = document.createElement('div');
@@ -333,7 +308,11 @@
 
     function startListeningMessages() {
       messagesContainer.innerHTML = '';
+      if (messagesListener) {
+        messagesRef.off('child_added', messagesListener);
+      }
       messagesListener = messagesRef.on('child_added', snap => {
+        console.log('Mensagem recebida:', snap.val());
         renderMessage(snap.key, snap.val());
       });
     }
@@ -378,32 +357,36 @@
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`);
 
-          const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
-          await audioRef.put(audioFile);
-          const audioURL = await audioRef.getDownloadURL();
+          try {
+            const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
+            await audioRef.put(audioFile);
+            const audioURL = await audioRef.getDownloadURL();
 
-          const msg = {
-            uid: currentUser.uid,
-            name: currentUser.displayName || currentUser.email,
-            avatar: currentUser.photoURL || '',
-            audio: audioURL,
-            time: Date.now()
-          };
+            const msg = {
+              uid: currentUser.uid,
+              name: currentUser.displayName || currentUser.email,
+              avatar: currentUser.photoURL || '',
+              audio: audioURL,
+              time: Date.now()
+            };
 
-          messagesRef.push(msg);
+            messagesRef.push(msg);
+          } catch(err) {
+            alert('Erro ao enviar áudio: ' + err.message);
+            console.error('Erro upload áudio:', err);
+          }
         };
 
-        // Permite parar a gravação ao clicar novamente no botão
+        // Clique no botão para parar gravação antes dos 30s
         audioBtn.onclick = () => {
           if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
           }
-          audioBtn.classList.remove('recording');
-          audioBtn.title = "Gravar áudio";
+          // Reatribuir o clique para iniciar nova gravação
           audioBtn.onclick = startAudioRecording;
         };
 
-        // Para gravação automática após 30 segundos
+        // Para gravação automaticamente após 30 segundos
         setTimeout(() => {
           if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
@@ -419,7 +402,6 @@
     }
 
     // Eventos
-    loginBtn.onclick = loginBtn.onclick; // mantém login registrado
     sendBtn.onclick = sendMessage;
     messageInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
