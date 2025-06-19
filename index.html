@@ -101,6 +101,7 @@
       width: 100%;
       padding: 10px;
       background: #f0f0f0;
+      gap: 5px;
     }
     .input-area input {
       flex: 1;
@@ -112,11 +113,11 @@
     .input-area button {
       padding: 10px 20px;
       font-size: 16px;
-      margin-left: 5px;
       background: #25d366;
       border: none;
       border-radius: 6px;
       color: white;
+      cursor: pointer;
     }
     #error-message {
       color: red;
@@ -145,6 +146,7 @@
     <div class="input-area">
       <input type="text" id="message-input" placeholder="Digite uma mensagem" />
       <button id="send-btn">➤</button>
+      <button id="audio-btn">🎙️</button>
     </div>
   </div>
   <script>
@@ -177,10 +179,13 @@
     const messagesContainer = document.getElementById('messages');
     const messageInput = document.getElementById('message-input');
     const sendBtn = document.getElementById('send-btn');
+    const audioBtn = document.getElementById('audio-btn');
     const errorMessage = document.getElementById('error-message');
 
     let currentUser = null;
     let messagesListener = null;
+    let mediaRecorder;
+    let audioChunks = [];
 
     function showLogin() {
       loginScreen.style.display = 'flex';
@@ -241,7 +246,8 @@
     };
 
     function renderMessage(key, msg) {
-      if (!msg.text || !msg.name) return;
+      if (!msg.text && !msg.audio) return; // aceita mensagem texto ou áudio, pelo menos um
+
       const isSent = currentUser && msg.uid === currentUser.uid;
       const div = document.createElement('div');
       div.className = 'msg ' + (isSent ? 'sent' : 'received');
@@ -263,12 +269,22 @@
       header.appendChild(name);
       header.appendChild(time);
 
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.textContent = msg.text;
-
       div.appendChild(header);
-      div.appendChild(text);
+
+      if (msg.text) {
+        const text = document.createElement('div');
+        text.className = 'text';
+        text.textContent = msg.text;
+        div.appendChild(text);
+      }
+
+      if (msg.audio) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = msg.audio;
+        div.appendChild(audio);
+      }
+
       messagesContainer.appendChild(div);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -316,6 +332,47 @@
         sendMessage();
       }
     });
+
+    // Gravação de áudio
+    audioBtn.onclick = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Este navegador não suporta gravação de áudio.');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      audioChunks = [];
+
+      alert('🎙️ Gravando áudio (até 30 segundos). Fale agora.');
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`);
+
+        const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
+        await audioRef.put(audioFile);
+        const audioURL = await audioRef.getDownloadURL();
+
+        const msg = {
+          uid: currentUser.uid,
+          name: currentUser.displayName || currentUser.email,
+          avatar: currentUser.photoURL || '',
+          audio: audioURL,
+          time: Date.now()
+        };
+
+        messagesRef.push(msg);
+      };
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+      }, 30000); // Grava por 30 segundos
+    };
 
     // Observa mudanças na autenticação
     auth.onAuthStateChanged(user => {
