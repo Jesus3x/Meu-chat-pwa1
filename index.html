@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat Firebase - Base64 Áudio e Imagem</title>
-  <link rel="manifest" href="/manifest.json" />
+  <title>Chat Estilo WhatsApp</title>
   <meta name="theme-color" content="#075e54" />
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
+      background: #ece5dd;
     }
     #login-screen, #chat-screen {
       display: none;
@@ -22,38 +22,20 @@
       justify-content: center;
       background: #f5f5f5;
     }
-    #chat-screen {
-      background: #ece5dd;
-    }
     input, button {
       padding: 10px;
-      margin: 5px 0;
+      margin: 5px;
       font-size: 16px;
     }
-    button {
-      background-color: #25d366;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       width: 100%;
       background: #075e54;
       color: white;
       padding: 10px;
-    }
-    .user-info {
+      font-weight: bold;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 10px;
-    }
-    .user-info img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
     }
     #messages {
       flex: 1;
@@ -65,162 +47,194 @@
       margin: 10px;
       padding: 10px;
       border-radius: 10px;
-      max-width: 60%;
-      display: flex;
-      flex-direction: column;
+      max-width: 70%;
     }
-    .sent {
-      background: #dcf8c6;
-      align-self: flex-end;
-    }
-    .received {
-      background: #ffffff;
-      align-self: flex-start;
-    }
-    .msg-header {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.85em;
-    }
-    .msg .text {
-      margin-top: 5px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
+    .sent { background: #dcf8c6; align-self: flex-end; }
+    .received { background: #fff; align-self: flex-start; }
     .input-area {
       display: flex;
-      width: 100%;
-      padding: 10px;
-      background: #f0f0f0;
-      gap: 5px;
       align-items: center;
+      padding: 10px;
+      background: #fff;
+      gap: 8px;
     }
     .input-area input[type="text"] {
       flex: 1;
-      padding: 10px;
-      font-size: 16px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 20px;
+      padding: 10px 15px;
     }
     .input-area button {
-      padding: 10px 15px;
-      font-size: 18px;
       background: #25d366;
       border: none;
-      border-radius: 6px;
       color: white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
       cursor: pointer;
-      user-select: none;
     }
-    #audio-btn.recording {
-      background-color: #cc3333 !important;
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(204, 51, 51, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0); }
-    }
-    #file-input {
-      display: none;
+    audio, img {
+      margin-top: 5px;
+      max-width: 100%;
+      border-radius: 8px;
     }
   </style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
+  <div id="login-screen">
+    <h2>Entrar no Chat</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+    <div id="login-error" style="color:red;"></div>
+  </div>
+
   <div id="chat-screen">
     <header>
-      <div class="user-info">
-        <img id="user-avatar" src="" alt="Avatar">
-        <span id="user-name">Usuário</span>
-      </div>
+      <span>Chat</span>
+      <button onclick="logout()">⎋</button>
     </header>
     <div id="messages"></div>
     <div class="input-area">
+      <input type="file" id="image-input" accept="image/*" style="display:none" />
+      <button onclick="document.getElementById('image-input').click()">📎</button>
       <input type="text" id="message-input" placeholder="Mensagem...">
-      <input type="file" id="file-input" accept="image/*">
-      <button id="clip-btn" title="Enviar imagem">📎</button>
-      <button id="audio-btn" title="Gravar áudio">🎤</button>
-      <button id="send-btn" title="Enviar mensagem">➤</button>
+      <button onclick="startRecording()">🎤</button>
+      <button onclick="sendMessage()">➤</button>
     </div>
   </div>
-  <script>
-    const messagesContainer = document.getElementById('messages');
-    const messageInput = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const audioBtn = document.getElementById('audio-btn');
-    const clipBtn = document.getElementById('clip-btn');
-    const fileInput = document.getElementById('file-input');
-    let mediaRecorder, audioChunks = [];
 
-    function renderMessage(msg) {
-      const div = document.createElement('div');
-      div.className = 'msg sent';
-      const content = document.createElement('div');
-      content.className = 'text';
-      if (msg.text) content.textContent = msg.text;
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
+    authDomain: "chat-on-1-4f38f.firebaseapp.com",
+    databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
+    projectId: "chat-on-1-4f38f",
+    storageBucket: "chat-on-1-4f38f.appspot.com",
+    messagingSenderId: "499742357573",
+    appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database().ref("messages");
+
+  let currentUser = null;
+  let recorder, chunks = [];
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      showChat();
+      listenMessages();
+    } else {
+      showLogin();
+    }
+  });
+
+  function showLogin() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("chat-screen").style.display = "none";
+  }
+
+  function showChat() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("chat-screen").style.display = "flex";
+  }
+
+  function login() {
+    const email = document.getElementById("email").value.trim();
+    const pass = document.getElementById("password").value;
+    firebase.auth().signInWithEmailAndPassword(email, pass)
+      .catch(() => {
+        firebase.auth().createUserWithEmailAndPassword(email, pass)
+          .catch(e => document.getElementById("login-error").textContent = e.message);
+      });
+  }
+
+  function logout() {
+    firebase.auth().signOut();
+  }
+
+  function sendMessage() {
+    const text = document.getElementById("message-input").value.trim();
+    if (!text) return;
+    db.push({
+      uid: currentUser.uid,
+      text,
+      time: Date.now()
+    });
+    document.getElementById("message-input").value = "";
+  }
+
+  function listenMessages() {
+    document.getElementById("messages").innerHTML = "";
+    db.on("child_added", snap => {
+      const msg = snap.val();
+      const div = document.createElement("div");
+      div.className = "msg " + (msg.uid === currentUser.uid ? "sent" : "received");
+
+      if (msg.text) {
+        div.innerText = msg.text;
+      }
       if (msg.audio) {
-        const audio = document.createElement('audio');
+        const audio = document.createElement("audio");
         audio.controls = true;
         audio.src = msg.audio;
         div.appendChild(audio);
       }
       if (msg.image) {
-        const img = document.createElement('img');
+        const img = document.createElement("img");
         img.src = msg.image;
-        img.style.maxWidth = '200px';
-        img.style.borderRadius = '10px';
         div.appendChild(img);
       }
-      div.appendChild(content);
-      messagesContainer.appendChild(div);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
 
-    sendBtn.onclick = () => {
-      const text = messageInput.value.trim();
-      if (text) {
-        renderMessage({ text });
-        messageInput.value = '';
-      }
-    };
+      document.getElementById("messages").appendChild(div);
+      document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+    });
+  }
 
-    clipBtn.onclick = () => fileInput.click();
-    fileInput.onchange = () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        renderMessage({ image: reader.result });
-      };
-      reader.readAsDataURL(file);
-    };
-
-    audioBtn.onclick = async () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        audioBtn.classList.remove('recording');
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        recorder = new MediaRecorder(stream);
+        chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
           const reader = new FileReader();
-          reader.onload = () => {
-            renderMessage({ audio: reader.result });
+          reader.onloadend = () => {
+            db.push({
+              uid: currentUser.uid,
+              audio: reader.result,
+              time: Date.now()
+            });
           };
           reader.readAsDataURL(blob);
         };
-        mediaRecorder.start();
-        audioBtn.classList.add('recording');
-      } catch (err) {
-        alert('Erro ao acessar microfone: ' + err.message);
-      }
+        recorder.start();
+        setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, 10000);
+      });
+  }
+
+  document.getElementById("image-input").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      db.push({
+        uid: currentUser.uid,
+        image: reader.result,
+        time: Date.now()
+      });
     };
-  </script>
+    reader.readAsDataURL(file);
+  });
+</script>
 </body>
 </html>
