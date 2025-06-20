@@ -3,30 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat com Áudio - Firebase Base64</title>
+  <title>Chat Firebase - Login com Email/Senha e Foto + Áudio Base64</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#075e54" />
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #login-screen, #chat-screen { display: none; flex-direction: column; align-items: center; padding: 20px; height: 100vh; }
-    #login-screen { justify-content: center; background: #f5f5f5; }
-    #chat-screen { background: #ece5dd; }
-    input, button { padding: 10px; margin: 5px 0; font-size: 16px; }
-    button { background-color: #25d366; color: white; border: none; cursor: pointer; }
-    header { display: flex; justify-content: space-between; align-items: center; width: 100%; background: #075e54; color: white; padding: 10px; }
-    .user-info { display: flex; align-items: center; gap: 10px; }
-    .user-info img { width: 32px; height: 32px; border-radius: 50%; }
-    #messages { flex: 1; width: 100%; overflow-y: auto; padding: 10px; }
-    .msg { margin: 10px; padding: 10px; border-radius: 10px; max-width: 60%; }
-    .sent { background: #dcf8c6; align-self: flex-end; }
-    .received { background: #ffffff; align-self: flex-start; }
-    .msg-header { display: flex; align-items: center; gap: 5px; font-size: 0.85em; }
-    .msg-header img { width: 24px; height: 24px; border-radius: 50%; }
-    .msg .text { margin-top: 2px; }
-    .input-area { display: flex; width: 100%; padding: 10px; background: #f0f0f0; align-items: center; }
-    .input-area input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
-    .input-area button { padding: 10px; font-size: 18px; margin-left: 5px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background-color: #25d366; border: none; color: white; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    #login-screen, #chat-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      height: 100vh;
+    }
+    #login-screen {
+      justify-content: center;
+      background: #f5f5f5;
+    }
+    #chat-screen {
+      background: #ece5dd;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      font-size: 16px;
+    }
+    button {
+      background-color: #25d366;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #075e54;
+      color: white;
+      padding: 10px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-info img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    #messages {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .msg {
+      margin: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 60%;
+      display: flex;
+      flex-direction: column;
+    }
+    .sent {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
+    .received {
+      background: #ffffff;
+      align-self: flex-start;
+    }
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85em;
+    }
+    .msg-header img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+    .msg .text {
+      margin-top: 2px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .input-area {
+      display: flex;
+      width: 100%;
+      padding: 10px;
+      background: #f0f0f0;
+      gap: 5px;
+      align-items: center;
+    }
+    .input-area input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .input-area button {
+      padding: 10px 15px;
+      font-size: 18px;
+      background: #25d366;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    #audio-btn.recording {
+      background-color: #cc3333 !important;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(204, 51, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0); }
+    }
+    #error-message {
+      color: red;
+      margin-bottom: 10px;
+      min-height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -35,6 +143,7 @@
     <div id="error-message"></div>
     <input type="email" id="email-input" placeholder="Email" />
     <input type="password" id="password-input" placeholder="Senha" />
+    <input type="file" id="avatar-input" accept="image/*" />
     <button id="login-btn">Entrar / Registrar</button>
   </div>
   <div id="chat-screen">
@@ -43,25 +152,25 @@
         <img id="user-avatar" src="" alt="Foto de perfil" />
         <span id="user-name"></span>
       </div>
-      <button id="logout-btn">⎋</button>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
     </header>
     <div id="messages"></div>
     <div class="input-area">
       <input type="text" id="message-input" placeholder="Digite uma mensagem" />
+      <button id="audio-btn" title="Gravar áudio">🎙️</button>
       <button id="send-btn" title="Enviar mensagem">➤</button>
-      <button id="record-btn" title="Gravar Áudio">🎤</button>
     </div>
   </div>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
       authDomain: "chat-on-1-4f38f.firebaseapp.com",
       databaseURL: "https://chat-on-1-4f38f-default-rtdb.firebaseio.com",
       projectId: "chat-on-1-4f38f",
-      storageBucket: "",
+      storageBucket: "chat-on-1-4f38f.appspot.com",
       messagingSenderId: "499742357573",
-      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c"
+      appId: "1:499742357573:web:0cf2bed752f4e1cbb74b2c",
+      measurementId: "G-BMZW4Q4PDJ"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -69,36 +178,168 @@
     const db = firebase.database();
     const messagesRef = db.ref("messages");
 
-    const loginScreen = document.getElementById("login-screen");
-    const chatScreen = document.getElementById("chat-screen");
-    const loginBtn = document.getElementById("login-btn");
-    const logoutBtn = document.getElementById("logout-btn");
-    const emailInput = document.getElementById("email-input");
-    const passwordInput = document.getElementById("password-input");
-    const userAvatar = document.getElementById("user-avatar");
-    const userNameDisplay = document.getElementById("user-name");
-    const messageInput = document.getElementById("message-input");
-    const sendBtn = document.getElementById("send-btn");
-    const recordBtn = document.getElementById("record-btn");
-    const messagesContainer = document.getElementById("messages");
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const chatScreen = document.getElementById('chat-screen');
+    const loginScreen = document.getElementById('login-screen');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const avatarInput = document.getElementById('avatar-input');
+    const userAvatar = document.getElementById('user-avatar');
+    const userNameDisplay = document.getElementById('user-name');
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const audioBtn = document.getElementById('audio-btn');
+    const errorMessage = document.getElementById('error-message');
+
     let currentUser = null;
-    let mediaRecorder;
-    let audioChunks = [];
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      chatScreen.style.display = 'none';
+    }
+
+    function showChat() {
+      loginScreen.style.display = 'none';
+      chatScreen.style.display = 'flex';
+      userNameDisplay.textContent = currentUser.displayName || currentUser.email;
+      userAvatar.src = currentUser.photoURL || 'https://i.imgur.com/xx7JfUD.png';
+      messageInput.focus();
+    }
 
     loginBtn.onclick = async () => {
+      errorMessage.textContent = '';
       const email = emailInput.value.trim();
       const password = passwordInput.value;
-      if (!email || !password) return alert("Preencha email e senha");
+      const avatarFile = avatarInput.files[0];
+
+      if (!email || !password) {
+        errorMessage.textContent = 'Email e senha são obrigatórios';
+        return;
+      }
+
       try {
-        const userCred = await auth.signInWithEmailAndPassword(email, password);
-        currentUser = userCred.user;
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = cred.user;
         showChat();
       } catch (e) {
-        const userCred = await auth.createUserWithEmailAndPassword(email, password);
-        currentUser = userCred.user;
-        showChat();
+        if (e.code === 'auth/user-not-found') {
+          const cred = await auth.createUserWithEmailAndPassword(email, password);
+          currentUser = cred.user;
+          const displayName = email.split('@')[0];
+          await currentUser.updateProfile({ displayName });
+          showChat();
+        } else {
+          errorMessage.textContent = e.message;
+        }
       }
     };
+
+    function renderMessage(key, msg) {
+      if (!msg.text && !msg.audio) return;
+      const isSent = currentUser && msg.uid === currentUser.uid;
+      const div = document.createElement('div');
+      div.className = 'msg ' + (isSent ? 'sent' : 'received');
+      const header = document.createElement('div');
+      header.className = 'msg-header';
+      const img = document.createElement('img');
+      img.src = msg.avatar || 'https://i.imgur.com/xx7JfUD.png';
+      const name = document.createElement('span');
+      name.textContent = msg.name;
+      const time = document.createElement('span');
+      const d = new Date(msg.time);
+      time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      header.appendChild(img);
+      header.appendChild(name);
+      header.appendChild(time);
+      div.appendChild(header);
+      if (msg.text) {
+        const text = document.createElement('div');
+        text.className = 'text';
+        text.textContent = msg.text;
+        div.appendChild(text);
+      }
+      if (msg.audio) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = msg.audio;
+        div.appendChild(audio);
+      }
+      messagesContainer.appendChild(div);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function startListeningMessages() {
+      messagesContainer.innerHTML = '';
+      messagesRef.on('child_added', snap => {
+        renderMessage(snap.key, snap.val());
+      });
+    }
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || !currentUser) return;
+      const msg = {
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email,
+        avatar: currentUser.photoURL || '',
+        text,
+        time: Date.now()
+      };
+      messagesRef.push(msg);
+      messageInput.value = '';
+    }
+
+    async function startAudioRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Audio = reader.result;
+            const msg = {
+              uid: currentUser.uid,
+              name: currentUser.displayName || currentUser.email,
+              avatar: currentUser.photoURL || '',
+              audio: base64Audio,
+              time: Date.now()
+            };
+            messagesRef.push(msg);
+          };
+          reader.readAsDataURL(blob);
+        };
+
+        mediaRecorder.start();
+        audioBtn.classList.add('recording');
+
+        setTimeout(() => {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            audioBtn.classList.remove('recording');
+          }
+        }, 30000);
+
+        audioBtn.onclick = () => {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            audioBtn.classList.remove('recording');
+            audioBtn.onclick = startAudioRecording;
+          }
+        };
+
+      } catch (err) {
+        alert('Erro ao gravar áudio: ' + err.message);
+      }
+    }
+
+    sendBtn.onclick = sendMessage;
+    audioBtn.onclick = startAudioRecording;
 
     logoutBtn.onclick = async () => {
       await auth.signOut();
@@ -106,96 +347,14 @@
       showLogin();
     };
 
-    function showLogin() {
-      loginScreen.style.display = "flex";
-      chatScreen.style.display = "none";
-    }
-
-    function showChat() {
-      loginScreen.style.display = "none";
-      chatScreen.style.display = "flex";
-      userNameDisplay.textContent = currentUser.email;
-      userAvatar.src = "https://i.imgur.com/xx7JfUD.png";
-    }
-
-    function renderMessage(msg) {
-      const div = document.createElement("div");
-      div.className = "msg " + (msg.uid === currentUser.uid ? "sent" : "received");
-      const header = document.createElement("div");
-      header.className = "msg-header";
-      const img = document.createElement("img");
-      img.src = msg.avatar || "https://i.imgur.com/xx7JfUD.png";
-      const name = document.createElement("span");
-      name.textContent = msg.name;
-      header.appendChild(img);
-      header.appendChild(name);
-      div.appendChild(header);
-
-      if (msg.audio) {
-        const audio = document.createElement("audio");
-        audio.controls = true;
-        audio.src = msg.audio;
-        div.appendChild(audio);
-      } else {
-        const text = document.createElement("div");
-        text.className = "text";
-        text.textContent = msg.text;
-        div.appendChild(text);
-      }
-      messagesContainer.appendChild(div);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    sendBtn.onclick = () => {
-      const text = messageInput.value.trim();
-      if (!text) return;
-      const msg = {
-        uid: currentUser.uid,
-        name: currentUser.email,
-        text,
-        time: Date.now()
-      };
-      messagesRef.push(msg);
-      messageInput.value = "";
-    };
-
-    recordBtn.onclick = async () => {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-        recordBtn.textContent = "🎤";
-        return;
-      }
-      if (!navigator.mediaDevices) return alert("Microfone não suportado");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunks, { type: "audio/webm" });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64Audio = reader.result;
-          const msg = {
-            uid: currentUser.uid,
-            name: currentUser.email,
-            audio: base64Audio,
-            time: Date.now()
-          };
-          messagesRef.push(msg);
-        };
-        reader.readAsDataURL(blob);
-      };
-      mediaRecorder.start();
-      recordBtn.textContent = "◼️";
-    };
-
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
         showChat();
-        messagesContainer.innerHTML = "";
-        messagesRef.off();
-        messagesRef.on("child_added", snap => renderMessage(snap.val()));
+        startListeningMessages();
+      } else {
+        currentUser = null;
+        showLogin();
       }
     });
   </script>
