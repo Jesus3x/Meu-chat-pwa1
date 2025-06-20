@@ -1,244 +1,242 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Chat Firebase - Completo Dark + Emojis + Áudio + Imagens</title>
-<meta name="theme-color" content="#075e54" />
-<link rel="manifest" href="/manifest.json" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat Firebase - Login com Email/Senha, Foto e Áudio</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#075e54" />
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
-<style>
-  /* Reset */
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0; font-family: Arial, sans-serif; background-color: #121b22; color: #eee;
-    display: flex; flex-direction: column; height: 100vh;
-  }
-  /* Login */
-  #login-screen {
-    background-color: #075e54;
-    display: flex; flex-direction: column; justify-content: center; align-items: center; 
-    height: 100vh; padding: 20px; color: white;
-  }
-  #login-screen h2 {
-    font-weight: 700; margin-bottom: 30px; font-size: 28px;
-  }
-  #login-screen input {
-    width: 280px; padding: 12px 15px; margin-bottom: 15px; border-radius: 25px; border: none;
-    font-size: 16px; outline: none;
-  }
-  #login-screen input::placeholder {
-    color: #a0d6b4;
-  }
-  #login-screen button {
-    width: 280px; padding: 14px 0; background-color: #25d366; border: none;
-    border-radius: 25px; font-size: 18px; font-weight: 700; color: white; cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  #login-screen button:hover {
-    background-color: #128c4a;
-  }
-  #error-message {
-    margin-top: 10px; min-height: 18px; color: #ff6b6b;
-  }
-
-  /* Chat Screen */
-  #chat-screen {
-    flex: 1; display: flex; flex-direction: column; background: #1e2a33;
-  }
-  header {
-    display: flex; justify-content: space-between; align-items: center; padding: 10px 15px;
-    background: #075e54; color: white;
-  }
-  .user-info {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .user-info img {
-    width: 36px; height: 36px; border-radius: 50%;
-    object-fit: cover;
-  }
-  #user-name {
-    font-weight: 700; font-size: 18px;
-  }
-  #logout-btn {
-    background: transparent; border: none; color: white; font-size: 22px; cursor: pointer;
-  }
-  
-  /* Messages */
-  #messages {
-    flex: 1; padding: 15px; overflow-y: auto; background: #152028;
-    display: flex; flex-direction: column;
-    scrollbar-width: thin; scrollbar-color: #444 #152028;
-  }
-  #messages::-webkit-scrollbar {
-    width: 8px;
-  }
-  #messages::-webkit-scrollbar-track {
-    background: #152028;
-  }
-  #messages::-webkit-scrollbar-thumb {
-    background-color: #444; border-radius: 4px;
-  }
-
-  .msg {
-    margin: 8px 0; padding: 10px 14px; border-radius: 15px; max-width: 60%;
-    display: flex; flex-direction: column;
-    word-break: break-word;
-  }
-  .sent {
-    background: #25d366;
-    color: #042e00;
-    align-self: flex-end;
-    border-bottom-right-radius: 2px;
-  }
-  .received {
-    background: #1a2832;
-    color: #eee;
-    align-self: flex-start;
-    border-bottom-left-radius: 2px;
-  }
-  .msg-header {
-    display: flex; align-items: center; gap: 8px; font-size: 0.75em; margin-bottom: 4px;
-  }
-  .msg-header img {
-    width: 24px; height: 24px; border-radius: 50%;
-    object-fit: cover;
-  }
-  .msg .text {
-    white-space: pre-wrap;
-  }
-  audio {
-    margin-top: 5px; width: 100%; outline: none;
-    border-radius: 8px;
-  }
-  img.chat-image {
-    max-width: 100%; border-radius: 12px; margin-top: 6px;
-  }
-
-  /* Input Area */
-  .input-area {
-    display: flex; align-items: center; padding: 10px 15px; background: #152028;
-    gap: 8px;
-  }
-  #message-input {
-    flex: 1; padding: 12px 15px; font-size: 16px; border-radius: 20px; border: none;
-    outline: none; background: #23414d; color: #eee;
-  }
-  #message-input::placeholder {
-    color: #bbb;
-  }
-
-  /* Buttons */
-  .btn-circle {
-    width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 22px; user-select: none;
-  }
-  #send-btn {
-    background-color: #25d366; color: #042e00;
-  }
-  #send-btn:disabled {
-    background-color: #799c83; cursor: default;
-  }
-  #audio-btn {
-    background-color: #25d366; color: white; transition: background-color 0.3s;
-  }
-  #audio-btn.recording {
-    background-color: #cc3333;
-    animation: pulse 1.2s infinite;
-  }
-  #image-btn {
-    background-color: #128c4a; color: white;
-  }
-  #emoji-btn {
-    background-color: #128c4a; color: white;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(204, 51, 51, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0); }
-  }
-
-  /* Status "digitando..." */
-  #typing-status {
-    padding-left: 15px; height: 20px; font-style: italic; color: #ccc;
-    font-size: 14px; min-height: 20px;
-  }
-
-  /* Emoji picker */
-  #emoji-picker {
-    position: absolute;
-    bottom: 70px;
-    right: 70px;
-    background: #23414d;
-    border-radius: 10px;
-    padding: 10px;
-    display: none;
-    max-width: 280px;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0 0 10px #000;
-    user-select: none;
-  }
-  #emoji-picker span {
-    font-size: 24px;
-    margin: 5px;
-    cursor: pointer;
-  }
-  #emoji-picker span:hover {
-    background: #128c4a;
-    border-radius: 5px;
-  }
-</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121b22;
+      color: #ddd;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #login-screen, #chat-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      flex: 1;
+    }
+    #login-screen {
+      justify-content: center;
+      background: #1f2c34;
+    }
+    #chat-screen {
+      background: #1e2a31;
+      display: flex;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+    }
+    input[type="email"], input[type="password"] {
+      width: 250px;
+      background-color: #233038;
+      color: #ddd;
+    }
+    input[type="file"] {
+      color: #ddd;
+    }
+    button {
+      background-color: #25d366;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1ebe57;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #075e54;
+      color: white;
+      padding: 10px 20px;
+      box-sizing: border-box;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-info img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #333;
+    }
+    #messages {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+    .msg {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 12px;
+      max-width: 60%;
+      display: flex;
+      flex-direction: column;
+      word-break: break-word;
+    }
+    .sent {
+      background: #056162;
+      align-self: flex-end;
+      color: #e1f4f3;
+    }
+    .received {
+      background: #233038;
+      align-self: flex-start;
+      color: #ddd;
+    }
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85em;
+      margin-bottom: 5px;
+    }
+    .msg-header img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .msg .text {
+      white-space: pre-wrap;
+    }
+    audio {
+      margin-top: 8px;
+      outline: none;
+      width: 100%;
+      border-radius: 6px;
+      background: #233038;
+    }
+    img.msg-image {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 5px #25d366;
+      transition: transform 0.2s ease;
+    }
+    img.msg-image:hover {
+      transform: scale(1.05);
+    }
+    .input-area {
+      display: flex;
+      width: 100%;
+      padding: 10px 20px;
+      background: #233038;
+      gap: 8px;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .input-area input[type="text"] {
+      flex: 1;
+      padding: 12px 15px;
+      font-size: 16px;
+      border-radius: 20px;
+      border: none;
+      background-color: #1e2a31;
+      color: #ddd;
+      outline: none;
+    }
+    .input-area button {
+      padding: 10px 15px;
+      font-size: 20px;
+      border-radius: 50%;
+      background: #25d366;
+      border: none;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    .input-area button:hover {
+      background-color: #1ebe57;
+    }
+    #audio-btn.recording {
+      background-color: #cc3333 !important;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(204, 51, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(204, 51, 51, 0); }
+    }
+    #error-message {
+      color: #ff6b6b;
+      margin-bottom: 10px;
+      min-height: 18px;
+      text-align: center;
+    }
+    #typing-status {
+      font-style: italic;
+      color: #a0d468;
+      font-size: 0.9em;
+      height: 20px;
+      padding-left: 20px;
+      margin-bottom: 4px;
+    }
+  </style>
 </head>
 <body>
-
-<!-- Tela de Login -->
-<div id="login-screen">
-  <h2>Entre no Chat</h2>
-  <div id="error-message"></div>
-  <input type="email" id="email-input" placeholder="Email" autocomplete="username" />
-  <input type="password" id="password-input" placeholder="Senha" autocomplete="current-password" />
-  <input type="file" id="avatar-input" accept="image/*" />
-  <button id="login-btn">Entrar / Registrar</button>
-</div>
-
-<!-- Tela de Chat -->
-<div id="chat-screen" style="display:none; flex-direction: column; height: 100vh;">
-  <header>
-    <div class="user-info">
-      <img id="user-avatar" src="" alt="Foto de perfil" />
-      <span id="user-name"></span>
+  <div id="login-screen">
+    <h2>Entre no Chat</h2>
+    <div id="error-message"></div>
+    <input type="email" id="email-input" placeholder="Email" />
+    <input type="password" id="password-input" placeholder="Senha" />
+    <input type="file" id="avatar-input" accept="image/*" />
+    <button id="login-btn">Entrar / Registrar</button>
+  </div>
+  <div id="chat-screen">
+    <header>
+      <div class="user-info">
+        <img id="user-avatar" src="" alt="Foto de perfil" />
+        <span id="user-name"></span>
+      </div>
+      <button id="logout-btn" title="Sair do chat">⎋</button>
+    </header>
+    <div id="typing-status"></div>
+    <div id="messages"></div>
+    <div class="input-area">
+      <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
+      <input type="file" id="image-input" accept="image/*" style="display:none;" />
+      <button id="image-btn" title="Enviar imagem">📎</button>
+      <button id="audio-btn" title="Gravar áudio">🎙️</button>
+      <button id="send-btn" title="Enviar mensagem">➤</button>
     </div>
-    <button id="logout-btn" title="Sair do chat">⎋</button>
-  </header>
-
-  <div id="messages"></div>
-  <div id="typing-status"></div>
-
-  <div class="input-area">
-    <button id="emoji-btn" class="btn-circle" title="Selecionar emoji">😊</button>
-    <input type="text" id="message-input" placeholder="Digite uma mensagem" autocomplete="off" />
-    <button id="image-btn" class="btn-circle" title="Enviar imagem">📎</button>
-    <button id="audio-btn" class="btn-circle" title="Segure para gravar áudio">🎤</button>
-    <button id="send-btn" class="btn-circle" title="Enviar mensagem" disabled>➤</button>
   </div>
 
-  <input type="file" id="image-input" accept="image/*" style="display:none" />
-
-  <div id="emoji-picker"></div>
-</div>
-
 <script>
-  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyAb3NOMIUO-zQ9QaGIXwV8ty38cN9Yl2Gg",
     authDomain: "chat-on-1-4f38f.firebaseapp.com",
@@ -257,27 +255,22 @@
   const messagesRef = db.ref("messages");
   const typingRef = db.ref("typing");
 
-  // Elementos
-  const loginScreen = document.getElementById('login-screen');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
   const chatScreen = document.getElementById('chat-screen');
+  const loginScreen = document.getElementById('login-screen');
   const emailInput = document.getElementById('email-input');
   const passwordInput = document.getElementById('password-input');
   const avatarInput = document.getElementById('avatar-input');
-  const loginBtn = document.getElementById('login-btn');
-  const errorMessage = document.getElementById('error-message');
-
   const userAvatar = document.getElementById('user-avatar');
   const userNameDisplay = document.getElementById('user-name');
-  const logoutBtn = document.getElementById('logout-btn');
-
   const messagesContainer = document.getElementById('messages');
   const messageInput = document.getElementById('message-input');
   const sendBtn = document.getElementById('send-btn');
   const audioBtn = document.getElementById('audio-btn');
+  const errorMessage = document.getElementById('error-message');
   const imageBtn = document.getElementById('image-btn');
   const imageInput = document.getElementById('image-input');
-  const emojiBtn = document.getElementById('emoji-btn');
-  const emojiPicker = document.getElementById('emoji-picker');
   const typingStatus = document.getElementById('typing-status');
 
   let currentUser = null;
@@ -286,11 +279,11 @@
   let audioChunks = [];
   let typingTimeout;
 
-  // Funções UI
   function showLogin() {
     loginScreen.style.display = 'flex';
     chatScreen.style.display = 'none';
   }
+
   function showChat() {
     loginScreen.style.display = 'none';
     chatScreen.style.display = 'flex';
@@ -299,14 +292,12 @@
     messageInput.focus();
   }
 
-  // Upload avatar
   async function uploadAvatar(uid, file) {
     const avatarRef = storage.ref().child(`avatars/${uid}.jpg`);
     await avatarRef.put(file);
     return await avatarRef.getDownloadURL();
   }
 
-  // Login / Registro
   loginBtn.onclick = async () => {
     errorMessage.textContent = '';
     const email = emailInput.value.trim();
@@ -317,6 +308,7 @@
       errorMessage.textContent = 'Email e senha são obrigatórios';
       return;
     }
+
     try {
       const cred = await auth.signInWithEmailAndPassword(email, password);
       currentUser = cred.user;
@@ -346,21 +338,6 @@
     }
   };
 
-  // Logout
-  logoutBtn.onclick = async () => {
-    if (confirm('Deseja sair do chat?')) {
-      await auth.signOut();
-      currentUser = null;
-      messagesContainer.innerHTML = '';
-      if (messagesListener) {
-        messagesRef.off('child_added', messagesListener);
-        messagesListener = null;
-      }
-      showLogin();
-    }
-  };
-
-  // Render mensagem
   function renderMessage(key, msg) {
     if (!msg.text && !msg.audio && !msg.image) return;
 
@@ -393,23 +370,27 @@
       text.textContent = msg.text;
       div.appendChild(text);
     }
+
     if (msg.audio) {
       const audio = document.createElement('audio');
       audio.controls = true;
       audio.src = msg.audio;
       div.appendChild(audio);
     }
+
     if (msg.image) {
       const image = document.createElement('img');
       image.src = msg.image;
-      image.className = 'chat-image';
+      image.className = 'msg-image';
+      image.alt = "Imagem enviada";
+      image.onclick = () => window.open(msg.image, '_blank');
       div.appendChild(image);
     }
+
     messagesContainer.appendChild(div);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
-  // Start escuta mensagens
   function startListeningMessages() {
     messagesContainer.innerHTML = '';
     if (messagesListener) {
@@ -420,9 +401,7 @@
     });
   }
 
-  // Enviar mensagem texto
-  function sendMessage() {
-    const text = messageInput.value.trim();
+  function sendMessage(text) {
     if (!text || !currentUser) return;
     const msg = {
       uid: currentUser.uid,
@@ -432,20 +411,141 @@
       time: Date.now()
     };
     messagesRef.push(msg);
-    messageInput.value = '';
-    sendBtn.disabled = true;
-    updateTyping(false);
   }
 
-  // Envio Imagem
-  imageBtn.onclick = () => imageInput.click();
-  imageInput.onchange = async e => {
-    const file = e.target.files[0];
-    if (!file || !currentUser) return;
-    const fileRef = storage.ref().child(`images/${currentUser.uid}_${Date.now()}_${file.name}`);
+  sendBtn.onclick = () => {
+    const text = messageInput.value.trim();
+    if (text) {
+      sendMessage(text);
+      messageInput.value = '';
+      updateTyping(false);
+    }
+  };
+
+  messageInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendBtn.click();
+    } else {
+      updateTyping(true);
+    }
+  });
+
+  // TYPING STATUS
+  function updateTyping(isTyping) {
+    if (!currentUser) return;
+    typingRef.child(currentUser.uid).set(isTyping);
+    if (typingTimeout) clearTimeout(typingTimeout);
+    if (isTyping) {
+      typingTimeout = setTimeout(() => updateTyping(false), 3000);
+    }
+  }
+
+  typingRef.on('value', snap => {
+    if (!currentUser) {
+      typingStatus.textContent = '';
+      return;
+    }
+    const typingUsers = snap.val() || {};
+    const otherTyping = Object.keys(typingUsers).some(uid => uid !== currentUser.uid && typingUsers[uid]);
+    typingStatus.textContent = otherTyping ? 'Digitando...' : '';
+  });
+
+  // AUDIO RECORDING
+  async function startAudioRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Este navegador não suporta gravação de áudio.');
+      return;
+    }
+
     try {
-      await fileRef.put(file);
-      const url = await fileRef.getDownloadURL();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      audioChunks = [];
+
+      audioBtn.classList.add('recording');
+      audioBtn.title = "Gravando... Clique para parar";
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        audioBtn.classList.remove('recording');
+        audioBtn.title = "Gravar áudio";
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`);
+
+        try {
+          const audioRef = storage.ref().child(`audios/${currentUser.uid}_${Date.now()}.webm`);
+          await audioRef.put(audioFile);
+          const audioURL = await audioRef.getDownloadURL();
+
+          const msg = {
+            uid: currentUser.uid,
+            name: currentUser.displayName || currentUser.email,
+            avatar: currentUser.photoURL || '',
+            audio: audioURL,
+            time: Date.now()
+          };
+
+          messagesRef.push(msg);
+        } catch(err) {
+          alert('Erro ao enviar áudio: ' + err.message);
+          console.error('Erro upload áudio:', err);
+        }
+      };
+
+      // Clique no botão para parar gravação antes dos 30s
+      audioBtn.onclick = () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+        // Reatribuir o clique para iniciar nova gravação
+        audioBtn.onclick = startAudioRecording;
+      };
+
+      // Para gravação automaticamente após 30 segundos
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+          audioBtn.classList.remove('recording');
+          audioBtn.title = "Gravar áudio";
+          audioBtn.onclick = startAudioRecording;
+        }
+      }, 30000);
+
+    } catch (error) {
+      alert('Erro ao acessar o microfone: ' + error.message);
+    }
+  }
+
+  audioBtn.onclick = startAudioRecording;
+
+  // IMAGEM - UPLOAD E ENVIO
+  imageBtn.onclick = () => {
+    imageInput.click();
+  };
+
+  imageInput.onchange = async () => {
+    if (!currentUser) return;
+    const file = imageInput.files[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) {
+      alert('Tipo de arquivo não suportado.');
+      return;
+    }
+
+    const storageRef = storage.ref();
+    const imageRef = storageRef.child(`images/${currentUser.uid}_${Date.now()}.${ext}`);
+
+    try {
+      await imageRef.put(file);
+      const url = await imageRef.getDownloadURL();
+
       const msg = {
         uid: currentUser.uid,
         name: currentUser.displayName || currentUser.email,
@@ -454,127 +554,28 @@
         time: Date.now()
       };
       messagesRef.push(msg);
-    } catch (err) {
+      imageInput.value = ''; // resetar input
+    } catch(err) {
       alert('Erro ao enviar imagem: ' + err.message);
+      console.error('Erro upload imagem:', err);
     }
-    imageInput.value = ''; // limpa input
   };
 
-  // Áudio base64 com gravação segurando botão
-  audioBtn.addEventListener('mousedown', async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Navegador não suporta gravação de áudio');
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.start();
-      audioBtn.classList.add('recording');
-    } catch (err) {
-      alert('Erro ao acessar microfone: ' + err.message);
-    }
-  });
-  audioBtn.addEventListener('mouseup', () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-      audioBtn.classList.remove('recording');
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64audio = reader.result;
-          // Enviar audio base64 no banco
-          const msg = {
-            uid: currentUser.uid,
-            name: currentUser.displayName || currentUser.email,
-            avatar: currentUser.photoURL || '',
-            audio: base64audio,
-            time: Date.now()
-          };
-          messagesRef.push(msg);
-        };
-        reader.readAsDataURL(audioBlob);
-      };
-    }
-  });
-  audioBtn.addEventListener('mouseleave', () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-      audioBtn.classList.remove('recording');
-    }
-  });
-
-  // Habilitar botão enviar quando tem texto
-  messageInput.addEventListener('input', () => {
-    sendBtn.disabled = !messageInput.value.trim();
-    updateTyping(messageInput.value.trim().length > 0);
-  });
-
-  // Evento enviar mensagem
-  sendBtn.onclick = sendMessage;
-  messageInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-
-  // Atualiza status digitando
-  function updateTyping(isTyping) {
-    if (!currentUser) return;
-    typingRef.child(currentUser.uid).set(isTyping);
-    if (typingTimeout) clearTimeout(typingTimeout);
-    if (isTyping) {
-      typingTimeout = setTimeout(() => {
-        typingRef.child(currentUser.uid).set(false);
-      }, 3000);
-    }
-  }
-
-  // Escuta status digitando de outros usuários
-  typingRef.on('value', snapshot => {
-    const typingUsers = [];
-    snapshot.forEach(childSnap => {
-      if (childSnap.key !== (currentUser ? currentUser.uid : null) && childSnap.val() === true) {
-        typingUsers.push(childSnap.key);
+  // LOGOUT
+  logoutBtn.onclick = async () => {
+    if (confirm('Deseja sair do chat?')) {
+      await auth.signOut();
+      currentUser = null;
+      messagesContainer.innerHTML = '';
+      if (messagesListener) {
+        messagesRef.off('child_added', messagesListener);
+        messagesListener = null;
       }
-    });
-    if (typingUsers.length > 0) {
-      typingStatus.textContent = 'Digitando...';
-    } else {
-      typingStatus.textContent = '';
+      showLogin();
     }
-  });
-
-  // Emojis simples
-  const emojis = ['😀','😂','😍','😉','😎','😢','😭','😡','👍','🙏','🎉','💥','🌟','🔥','❤️','💚','💙','🎈'];
-  emojis.forEach(e => {
-    const span = document.createElement('span');
-    span.textContent = e;
-    span.onclick = () => {
-      messageInput.value += e;
-      sendBtn.disabled = false;
-      emojiPicker.style.display = 'none';
-      messageInput.focus();
-      updateTyping(true);
-    };
-    emojiPicker.appendChild(span);
-  });
-  emojiBtn.onclick = () => {
-    emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
   };
 
-  // Fechar emoji picker ao clicar fora
-  document.addEventListener('click', e => {
-    if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
-      emojiPicker.style.display = 'none';
-    }
-  });
-
-  // Autenticação observador
+  // AUTENTICAÇÃO - STATUS
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
@@ -595,6 +596,5 @@
       .catch(err => console.error('Erro no Service Worker:', err));
   }
 </script>
-
 </body>
 </html>
